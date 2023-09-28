@@ -19,7 +19,7 @@ import tensorflow as tf
 
 Then, let's define the model parameters using a TL.Params object:
 
-Python
+```py
 params = TL.Params(
     dense_units=[256, 512],
     dense_count=list(range(2,3)),
@@ -35,32 +35,31 @@ params = TL.Params(
     base_models=[tf.keras.applications.MobileNet, tf.keras.applications.MobileNetV2],
     epochs=60
 )
-
+```
 This code defines the following parameters:
 
-dense_units: Number of units in the dense layers.
-dense_count: Number of dense layers.
-conv_filters: Number of filters in the convolutional layers.
-conv_count: Number of convolutional layers.
-conv_layer_repeat_limit: Maximum number of times convolutional layers are repeated.
-drop_outs: Dropout rates.
-activation_functions: Activation functions.
-loss_functions: Loss functions.
-optimizers: Optimization algorithms.
-output_activation_functions: Activation functions in the output layer.
-frozen_layers: Layers to be frozen.
-base_models: Base models to be used for transfer learning.
-epochs: Number of epochs.
+- dense_units: Number of units in the dense layers.
+- dense_count: Number of dense layers.
+- conv_filters: Number of filters in the convolutional layers.
+- conv_count: Number of convolutional layers.
+- conv_layer_repeat_limit: Maximum number of times convolutional layers are repeated.
+- drop_outs: Dropout rates.
+- activation_functions: Activation functions.
+- loss_functions: Loss functions.
+- optimizers: Optimization algorithms.
+- output_activation_functions: Activation functions in the output layer.
+- frozen_layers: Layers to be frozen.
+- base_models: Base models to be used for transfer learning.
+- epochs: Number of epochs.
 Next, let's define the save_to_path and data_path variables:
-
-
+```py
 save_to_path = "save_to_path"
 data_path = "data path"
-
+```
 These variables specify the path where the trained model will be saved and the path to the training data, respectively.
 
 Finally, let's find the best image classification model using the TL.FindModel() function:
-
+```py
 best_model, best_acc, best_values, best_history = TL.FindModel(
     stop_massages=False,
     params = params,
@@ -71,11 +70,12 @@ best_model, best_acc, best_values, best_history = TL.FindModel(
     patience=3,
     save_to_path=save_to_path
 )
+```
 This code calls the TL.FindModel() function. This function finds and trains the best image classification model using the parameters given as arguments.
 
 The function returns the following values:
 
-best_model: The best image classification model.
-best_acc: The best validation accuracy.
-best_values: A dictionary containing the best values for each parameter.
-best_history: A history object containing the training and validation accuracy/loss values for each epoch.
+- best_model: The best image classification model.
+- best_acc: The best validation accuracy.
+- best_values: A dictionary containing the best values for each parameter.
+- best_history: A history object containing the training and validation accuracy/loss values for each epoch.
