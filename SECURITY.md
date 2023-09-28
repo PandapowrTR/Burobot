@@ -16,9 +16,7 @@ The repository maintainers will endeavor to respond to all vulnerability reports
 
 What to expect if the vulnerability is accepted or declined
 
-If the repository maintainers accept your vulnerability report, they will work with you to coordinate a public disclosure of the vulnerability. This may involve publishing a security advisory, patching the vulnerability, and releasing a new version of the software.
-
-repository maintainers can decline your vulnerability report. If this happends They will explain to you reasion.
+If you disagree with the repository maintainers' decision to accept or decline your vulnerability report, you can contact them directly to discuss your concerns.
 
 - Additional information
 
