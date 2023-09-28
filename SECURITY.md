@@ -1,6 +1,3 @@
-# Security Policy
-
-## Reporting a Vulnerability
 To report a vulnerability in a GitHub repository, please follow these steps:
 
 Navigate to the main page of the repository.
@@ -8,7 +5,8 @@ Under the repository name, click Security.
 Click Report a vulnerability to open the advisory form.
 Fill in the advisory details form.
 At the bottom of the form, click Submit report.
-Where to go
+
+- Where to go
 
 You can report a vulnerability in any GitHub repository, regardless of whether you are a contributor or not.
 
@@ -20,9 +18,9 @@ What to expect if the vulnerability is accepted or declined
 
 If the repository maintainers accept your vulnerability report, they will work with you to coordinate a public disclosure of the vulnerability. This may involve publishing a security advisory, patching the vulnerability, and releasing a new version of the software.
 
-repository maintainers can decline your vulnerability report.
+repository maintainers can decline your vulnerability report. If this happends They will explain to you reasion.
 
-Additional information
+- Additional information
 
 Please note that the following types of vulnerabilities are not eligible for reporting through the GitHub security advisory feature:
 
