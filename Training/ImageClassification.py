@@ -50,7 +50,7 @@ def test_model(model, test_data, device_memory: int, return_predictions: bool = 
         percentage = (progress / len(test_data)) * 100
 
         print("\r" + " " * 80, end="")
-        print(f"\rTest Progress: %{percentage:.2f}", end="")
+        print(f"\rTest Progress: {percentage:.2f}%", end="")
         for i in range(len(images)):
             test_size += 1
             img = np.expand_dims(images[i].numpy() / 255, 0)
@@ -88,7 +88,7 @@ def test_model(model, test_data, device_memory: int, return_predictions: bool = 
                 tf.keras.backend.clear_session()
                 gc.collect()
                 print("\r" + " " * 80, end="")
-                print("\rTest Progress: %100", end="")
+                print("\rTest Progress: 100%", end="")
                 print()
                 del model
                 if return_predictions:
@@ -144,7 +144,7 @@ def draw_model(
     ax2 = plt.subplot(gs[1])
     vals = f"{model_name}\n"
     vals += "\n".join([f"{key}: {value}" for key, value in values.items()])
-    vals += "\n" + "Accuracy: " + (("%" + str(acc)) if acc != -1 else "Overfitting")
+    vals += "\n" + "Accuracy: " + (( str(acc) + "%") if acc != -1 else "Overfitting")
     if test_size is not None:
         vals += "\nTest items: " + str(test_size)
     ax2.text(0.5, 0.4, vals, fontsize=16, ha="center")
@@ -1075,7 +1075,7 @@ class TransferLearning:
             != 1
         ):
             raise ValueError(
-                "Your data_split_ratio value not valid. data_split_ratio:tuple=(train, test) note: val= 1-(train+test). sum of data_split_ratio must be 1. example: (0.8, 0.1) => %80 train, %10 test, %10 validation"
+                "Your data_split_ratio value not valid. data_split_ratio:tuple=(train, test) note: val= 1-(train+test). sum of data_split_ratio must be 1. example: (0.8, 0.1) => 80% train, 10% test, 10% validation"
             )
 
     def __print_info(
@@ -1214,17 +1214,17 @@ class TransferLearning:
         print("🎓 The model is training with these values:\n" + poutput)
 
         print("📊 parameters tried: " + str(c) + "/" + str(all_))
-        print("💪 Train %" + str((c - 0) / (all_ - 0) * 100))
+        print("💪 Train " + str((c - 0) / (all_ - 0) * 100) + "%")
 
         print(
             "🏆 Best Accuracy: "
-            + (("%" + str(best_acc)) if best_acc is not None else "None")
+            + (((str(best_acc)) + "%") if best_acc is not None else "None")
         )
         if last_acc is not None:
             print(
                 ("🕦 Last Accuracy: ")
                 + (
-                    ("%" + str(last_acc))
+                    (str(last_acc)+"%")
                     if last_acc >= 0  # type: ignore
                     else "Overfitting"
                     if last_acc == -1
@@ -1851,7 +1851,7 @@ class TransferLearning:
                 )  # type: ignore
                 TransferLearning.__write_to_log_file(
                     "Tested Model:\nAccuracy:"
-                    + (("%" + str(test_acc)) if test_acc != -1 else "Overfitting"),  # type: ignore
+                    + ((str(test_acc) + "%") if test_acc != -1 else "Overfitting"),  # type: ignore
                     save_to_path,
                 )
                 checkpoint_model = tf.keras.models.load_model(checkpoint_model_path)  # type: ignore
@@ -1862,7 +1862,7 @@ class TransferLearning:
                 TransferLearning.__write_to_log_file(
                     "Tested Checkpoint Model:\nAccuracy:"
                     + (
-                        ("%" + str(checkpoint_test_acc))
+                        (str(checkpoint_test_acc) + "%")
                         if checkpoint_test_acc != -1
                         else "Overfitting"
                     ),  # type: ignore
