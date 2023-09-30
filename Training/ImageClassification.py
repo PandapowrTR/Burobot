@@ -272,13 +272,13 @@ class TransferLearning:
                             if (type(item) == int and itmind in [0, 2, 3, 4]) or (
                                 type(item) == float and itmind == 1
                             ):
-                                if item <= 0 and itmind in [0, 2, 4]:
+                                if item <= 0 and itmind in [0, 2, 4, 3]:
                                     raise ValueError(
-                                        "values must be larger than 0\nCheck this values: dense_units, conv_filters, dense_count 🔢"
+                                        "values must be larger than 0\nCheck this values: dense_units, conv_filters, dense_count, conv_count 🔢"
                                     )
-                                elif itmind in [1, 3] and item < 0:
+                                elif itmind in [1] and item < 0:
                                     raise ValueError(
-                                        "values must be larger or equal to 0.\nCheck this values: drop_outs, conv_count 🔢"
+                                        "values must be larger or equal to 0.\nCheck this values: drop_outs 🔢"
                                     )
                             else:
                                 raise ValueError(
