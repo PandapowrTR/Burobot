@@ -101,7 +101,7 @@ def test_model(model, test_data, device_memory: int, return_predictions: bool = 
     return test_acc
 
 
-def __draw_model(
+def draw_model(
     history,
     predictions,
     model_name,
@@ -1873,7 +1873,7 @@ class TransferLearning:
                     os.path.join(save_to_path, model_name + "_last(checkpoint).h5")
                 )
                 my_data_loader = BurobotImageData.ImageLoader()
-                __draw_model(
+                draw_model(
                     history,
                     predictions,
                     model_name,
@@ -1885,10 +1885,7 @@ class TransferLearning:
                         "drop_out": drop_out,
                         "activation_function": str(activation_function).split(" ")[1],
                         "loss_function": str(loss_function).split(" ")[1],
-                        "optimizer": str(optimizer)
-                        .split(" ")[1]
-                        .split(".")[-1]
-                        .replace("'>", ""),
+                        "optimizer": str(optimizer).split(" ")[1].split(".")[-1].replace("'>", ""),
                         "frozen_layer": frozen_layer,
                         "base_model": str(base_model).split(" ")[1],
                     },
@@ -1942,7 +1939,7 @@ class TransferLearning:
                             )
                         else:
                             best_values[key] = eval(key)
-                    __draw_model(
+                    draw_model(
                         history,
                         predictions,
                         model_name,
@@ -1969,6 +1966,7 @@ class TransferLearning:
             except Exception as e:
                 TransferLearning.__write_to_log_file("Error: " + str(e), save_to_path)  # type: ignore
                 print("Something went wrong. Skiping to next model 😵‍💫")
+                del all_params[0]
                 continue
 
         if best_model is None:
