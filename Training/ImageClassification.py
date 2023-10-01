@@ -553,7 +553,7 @@ class TransferLearning:
                     ) = eval(p.read())
                     save_to_path = self.train_folder
                     if type(new_data_path) in [list, tuple]:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -587,7 +587,7 @@ class TransferLearning:
                             model_name,
                         )
                     elif type(new_data_path) == str:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -642,7 +642,7 @@ class TransferLearning:
                         def_params,
                     ) = eval(p.read())
                     if type(data_path) == list:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -678,7 +678,7 @@ class TransferLearning:
                             model_name,
                         )
                     else:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -735,7 +735,7 @@ class TransferLearning:
                     ) = eval(p.read())
                     save_to_path = self.train_folder
                     if type(data_path) in [list, tuple]:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -768,7 +768,7 @@ class TransferLearning:
                             model_name,
                         )
                     else:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -836,7 +836,7 @@ class TransferLearning:
                 )
                 os.mkdir(split_path)
                 for params in divided_all_params:
-                    TransferLearning.__save_unused_params(  # type: ignore
+                    TransferLearning._save_unused_params(  # type: ignore
                         [
                             params,
                             str(skiped_models).replace("'", '"'),
@@ -1253,7 +1253,7 @@ class TransferLearning:
             else:
                 print("😫 patience: " + str(patience) + "\n")
 
-    def __save_unused_params(
+    def _save_unused_params(
         params: list, save_to_path: str, model_name: str, split: bool = False  # type: ignore
     ):
         n_params = []
@@ -1335,9 +1335,9 @@ class TransferLearning:
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         BurobotOutput.clear_and_memory_to()
 
-        def ___save_unused_params(save_data_paths):
+        def __save_unused_params(save_data_paths):
             if type(save_data_paths) in [tuple, list]:
-                TransferLearning.__save_unused_params(  # type: ignore
+                TransferLearning._save_unused_params(  # type: ignore
                     [
                         all_params,
                         str(skiped_models).replace("'", '"'),
@@ -1369,7 +1369,7 @@ class TransferLearning:
                     model_name,
                 )
             else:
-                TransferLearning.__save_unused_params(  # type: ignore
+                TransferLearning._save_unused_params(  # type: ignore
                     [
                         all_params,
                         str(skiped_models).replace("'", '"'),
@@ -1763,7 +1763,7 @@ class TransferLearning:
                                 "⚠️ Patience is disabled because there are no models to be tested. Running all params with ordered base models."
                             )
                             time.sleep(2)
-                        ___save_unused_params(save_data_paths)  # type: ignore
+                        __save_unused_params(save_data_paths)  # type: ignore
                         continue
                 TransferLearning.__print_info(  # type: ignore
                     best_values,
@@ -1790,7 +1790,7 @@ class TransferLearning:
                 )
                 model_exception = None
                 try:
-                    ___save_unused_params(save_data_paths)  # type: ignore
+                    __save_unused_params(save_data_paths)  # type: ignore
                     (
                         model,
                         checkpoint_model_path,
@@ -1843,7 +1843,7 @@ class TransferLearning:
                         patience -= 1
 
                     del all_params[0]
-                    ___save_unused_params(save_data_paths)  # type: ignore
+                    __save_unused_params(save_data_paths)  # type: ignore
                     continue
                 print("Testing Model 🥼")
                 test_acc, predictions = test_model(
@@ -1957,7 +1957,7 @@ class TransferLearning:
 
                 del all_params[0]
 
-                ___save_unused_params(save_data_paths)  # type: ignore
+                __save_unused_params(save_data_paths)  # type: ignore
             except KeyboardInterrupt:
                 TransferLearning.__write_to_log_file("User stoped", save_to_path)  # type: ignore
                 print("\nI-i s-stopped 🙌")
