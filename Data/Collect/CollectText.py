@@ -77,7 +77,7 @@ def create_data(data_name: str, save_to_path: str, encoding:str="utf-8"):
     if os.path.exists(os.path.join(save_to_path, data_name)):
         data_name += str(uuid.uuid1().hex)
     with open(data_name+".json", "w", encoding=encoding) as f:
-        json.dump(data, f)
+        json.dump(data, f, ensure_ascii=False)
 
 
 # BUROBOT
