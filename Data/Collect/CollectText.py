@@ -33,6 +33,7 @@ def create_data(data_name: str, save_to_path: str):
             print("🏷️ TAG: "+tag)
             if patterns != []:
                 print("📚 Patterns: " + str(patterns) + "\n")
+            pattern = ""
             try:
                 pattern = input("📄 Please enter a pattern(for exit enter 'Ctrl + C', for cancel tag ' '): ")
             except KeyboardInterrupt:
@@ -54,6 +55,7 @@ def create_data(data_name: str, save_to_path: str):
             print("📚 Patterns: " + str(patterns) + "\n")
             if answers != []:
                 print("🗂️ Answers: "+str(answers))
+            answer = ""
             try:
                 answer = input("💬 Please enter a answer(for exit enter 'Ctrl + C', for cancel tag ' '): ")
             except KeyboardInterrupt:
@@ -75,7 +77,7 @@ def create_data(data_name: str, save_to_path: str):
     if os.path.exists(os.path.join(save_to_path, data_name)):
         data_name += str(uuid.uuid1().hex)
     with open(data_name+".json", "w") as f:
-        f.write(json.dump(data))
+        json.dump(data, f)
 
 
 # BUROBOT
