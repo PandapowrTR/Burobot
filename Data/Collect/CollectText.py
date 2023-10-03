@@ -76,7 +76,7 @@ def create_data(data_name: str, save_to_path: str):
         data["intents"].append(data_part)
     if os.path.exists(os.path.join(save_to_path, data_name)):
         data_name += str(uuid.uuid1().hex)
-    with open(data_name+".json", "w") as f:
+    with open(data_name+".json", "w", encoding="utf-8") as f:
         json.dump(data, f)
 
 
