@@ -10,7 +10,7 @@ def _check_errs(save_to_path: str):
         raise FileNotFoundError("Can't find path 🤷\nsave_to_path: " + str(save_to_path))
 
 
-def create_data(data_name: str, save_to_path: str):
+def create_data(data_name: str, save_to_path: str, encoding:str="utf-8"):
     BurobotOutput.clear_and_memory_to()
     _check_errs(save_to_path)
     data = {"intents": []}
@@ -76,7 +76,7 @@ def create_data(data_name: str, save_to_path: str):
         data["intents"].append(data_part)
     if os.path.exists(os.path.join(save_to_path, data_name)):
         data_name += str(uuid.uuid1().hex)
-    with open(data_name+".json", "w", encoding="utf-8") as f:
+    with open(data_name+".json", "w", encoding=encoding) as f:
         json.dump(data, f)
 
 
