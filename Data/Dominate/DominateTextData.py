@@ -1,40 +1,18 @@
-import json, os, nltk, random
-nltk.download('wordnet')
-# Returns the synset of the word
-def get_synset(word):
-    return nltk.corpus.wordnet.synsets(word)[0]
+import json, os, random, sys
+
+sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
+from Burobot.tools import BurobotOutput
 
 
 # Returns the synonyms of the word
-def get_synonyms(word):
-    try:
-        return get_synset(word).lemmas()
-    except:
-        return None
-
-# Returns the hypernyms of the word
-def get_hypernyms(word):
-    try:
-        return get_synset(word).hypernyms()
-    except:
-        return None
-
-
-# Returns the antonyms of the word
-def get_antonyms(word):
-    try:
-        return get_synset(word).antonyms()
-    except:
-        return None
+def get_synonyms(word: str, syn):
+    if word in syn:
+        return syn[word.lower()]
+    return None
 
 
 class TextAugmentation:
-    class AugmentationRate:
-        high = 1
-        medium = 0.5
-        low = 0
-
-    def _check_errs(data_path: str, aug_rate, save_to_path: str):
+    def _check_errs(data_path: str, save_to_path: str):
         if not (os.path.isfile(data_path) and os.path.exists(save_to_path)):
             raise FileNotFoundError(
                 "Cant find path(s) 🤷\ndata_path:"
@@ -44,27 +22,43 @@ class TextAugmentation:
             )
         if len(data_path.split(".json")) < 2:
             raise FileNotFoundError("Please enter a json file 📜")
-        if not aug_rate in [1, 0.5, 0]:
-            raise ValueError(
-                "aug_rate must be 1, 0.5 or 0. Use TextAugmentation.AugmentationRate.[rate] 🔢"
-            )
 
-    def aug_data(data_path: str, aug_rate, save_to_path: str, encoding: str = "utf-8"):
-        TextAugmentation._check_errs(data_path, aug_rate, save_to_path)
+    def aug_data(data_path: str, save_to_path: str):
+        TextAugmentation._check_errs(data_path, save_to_path)
         # try:
         # Load data
-        with open(data_path, "r") as f:
+        data = {}
+        with open(data_path, "r", encoding="UTF-8") as f:
             data = json.load(f)
+        syn = {}
+        for syn_file in ["Turkish_synonyms.json", "English_synonyms.json"]:
+            with open(
+                os.path.join(
+                    os.path.abspath(__file__).replace("DominateTextData.py", ""),
+                    "TextDatatools",
+                    syn_file,
+                ),
+                "r",
+                encoding="UTF-8",
+            ) as f:
+                syn = json.load(f)
 
         augmented_data = []
+        all_ = len(data["intents"])
+        i = 0
         for intent in data["intents"]:
+            i +=1
+            BurobotOutput.clear_and_memory_to()
+            BurobotOutput.print_burobot()
+            print(f"Data augmentation {str((all_/i)*100)}% 😎\r")
             for pattern in intent["patterns"]:
-                new_word = random.choice(get_synonyms(pattern))
-                if new_word is None:
-                    continue
-                new_pattern = pattern.replace(pattern, new_word)
+                for word in pattern.split(" "):
+                    syns = get_synonyms(word, syn)
+                    if syns is None:
+                        continue
+                    new_word = random.choice(syns)
+                    new_pattern = pattern.replace(word, new_word)
 
-                if random.random() < aug_rate:
                     augmented_data.append(
                         {
                             "tag": intent["tag"],
@@ -72,14 +66,29 @@ class TextAugmentation:
                             "answers": intent["answers"],
                         }
                     )
+            for answer in intent["answers"]:
+                for word in answer.split(" "):
+                    syns = get_synonyms(word, syn)
+                    if syns is None:
+                        continue
+                    new_word = random.choice(syns)
+                    new_answer = pattern.replace(word, new_word)
 
-        data_name = os.path.splitext(data_path.split(".json")[0])[-1]
+                    augmented_data.append(
+                        {
+                            "tag": intent["tag"],
+                            "patterns": intent["patterns"],
+                            "answers": [new_answer],
+                        }
+                    )
+
+        data_name = data_path.split("\\")[-1].split("/")[-1].replace(".json", "")
 
         with open(
-            os.path.join(save_to_path, data_name + "_aug.json"),
+            os.path.join(save_to_path, str(data_name + "_aug.json")),
             "w",
-            encoding=encoding,
+            encoding="UTF-8",
         ) as f:
-            json.dump(augmented_data, f, indent=4)
+            json.dump({"intents": data["intents"] + augmented_data}, f, ensure_ascii=False)
         # except Exception as e:
         #     raise Exception("😵‍💫 Something went wrong. Error:" + str(e))
