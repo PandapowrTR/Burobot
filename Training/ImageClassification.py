@@ -2,7 +2,6 @@
 import os, gc, sys, itertools, time, psutil, threading
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
 try:
     os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 except:
@@ -220,7 +219,7 @@ class TransferLearning:
             def _check_base_models():
                 if base_models is not None:
                     for base_model in base_models:
-                        if base_model not in tf.keras.applications._dict_.values():
+                        if base_model not in tf.keras.applications.__dict__.values():
                             raise Exception(
                                 "Your base_models value is not true. Please use models from tensorflow.keras.applications 🎚️"
                             )
@@ -238,9 +237,9 @@ class TransferLearning:
                         )
                     for item in items:
                         if (
-                            not item in tf.keras.optimizers._dict_.values()
-                            and not item in tf.keras.activations._dict_.values()
-                            and not item in tf.keras.losses._dict_.values()
+                            not item in tf.keras.optimizers.__dict__.values()
+                            and not item in tf.keras.activations.__dict__.values()
+                            and not item in tf.keras.losses.__dict__.values()
                         ):
                             raise ValueError(
                                 "Invalid optimizer, activation function, loss function or output_activation_functions use tensorflow.keras.(optimizers, activations, losses).[your function] 🔢)"
@@ -459,7 +458,7 @@ class TransferLearning:
             ]
 
         class dominate_params_file:
-            def ___init___(self, params_file_path, train_folder):
+            def __init__(self, params_file_path, train_folder):
                 if not os.path.exists(params_file_path) or not os.path.isfile(
                     params_file_path
                 ):
@@ -1442,20 +1441,20 @@ class TransferLearning:
         len_base_models = 0
 
         if type(params) != str:
-            for key, value in params._dict_.items():
+            for key, value in params.__dict__.items():
                 if type(value) in [tuple, list]:
                     new_list = []
                     for item in value:
-                        if callable(item) and hasattr(item, "_module_"):
-                            module = ".".join(str(item._module_).split(".")[:2])
-                            qual_name = item._qualname_
+                        if callable(item) and hasattr(item, "__module__"):
+                            module = ".".join(str(item.__module__).split(".")[:2])
+                            qual_name = item.__qualname__
                             new_list.append(f"tf.{module}.{qual_name}")
                         else:
                             new_list.append(item)
                     def_params[key] = new_list
                 else:
-                    if callable(value) and hasattr(value, "_module_"):
-                        def_params[key] = f"tf.{value._module_}.{value._qualname_}"
+                    if callable(value) and hasattr(value, "__module__"):
+                        def_params[key] = f"tf.{value.__module__}.{value.__qualname__}"
                     else:
                         def_params[key] = value
 
