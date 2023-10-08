@@ -102,7 +102,7 @@ def test_model(model, test_data, device_memory: int, return_predictions: bool = 
     return test_acc
 
 
-def __draw_model(
+def _draw_model(
     history,
     predictions,
     model_name,
@@ -175,7 +175,7 @@ def __draw_model(
 class TransferLearning:
     conv0 = False
     class Params:
-        def __init__(
+        def _init_(
             self,
             dense_units=None,
             dense_count=None,
@@ -220,7 +220,7 @@ class TransferLearning:
             def _check_base_models():
                 if base_models is not None:
                     for base_model in base_models:
-                        if base_model not in tf.keras.applications.__dict__.values():
+                        if base_model not in tf.keras.applications._dict_.values():
                             raise Exception(
                                 "Your base_models value is not true. Please use models from tensorflow.keras.applications 🎚️"
                             )
@@ -238,15 +238,15 @@ class TransferLearning:
                         )
                     for item in items:
                         if (
-                            not item in tf.keras.optimizers.__dict__.values()
-                            and not item in tf.keras.activations.__dict__.values()
-                            and not item in tf.keras.losses.__dict__.values()
+                            not item in tf.keras.optimizers._dict_.values()
+                            and not item in tf.keras.activations._dict_.values()
+                            and not item in tf.keras.losses._dict_.values()
                         ):
                             raise ValueError(
                                 "Invalid optimizer, activation function, loss function or output_activation_functions use tensorflow.keras.(optimizers, activations, losses).[your function] 🔢)"
                             )
 
-            def __check_other():
+            def _check_other():
                 if None in [
                     dense_units,
                     dense_count,
@@ -327,7 +327,7 @@ class TransferLearning:
             thread = threading.Thread(target=_check_functions)
             threads.append(thread)
             thread.start()
-            thread = threading.Thread(target=__check_other)
+            thread = threading.Thread(target=_check_other)
             thread.start()
             threads.append(thread)
 
@@ -459,7 +459,7 @@ class TransferLearning:
             ]
 
         class dominate_params_file:
-            def __init__(self, params_file_path, train_folder):
+            def _init_(self, params_file_path, train_folder):
                 if not os.path.exists(params_file_path) or not os.path.isfile(
                     params_file_path
                 ):
@@ -554,7 +554,7 @@ class TransferLearning:
                     ) = eval(p.read())
                     save_to_path = self.train_folder
                     if type(new_data_path) in [list, tuple]:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -588,7 +588,7 @@ class TransferLearning:
                             model_name,
                         )
                     elif type(new_data_path) == str:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -643,7 +643,7 @@ class TransferLearning:
                         def_params,
                     ) = eval(p.read())
                     if type(data_path) == list:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -679,7 +679,7 @@ class TransferLearning:
                             model_name,
                         )
                     else:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -736,7 +736,7 @@ class TransferLearning:
                     ) = eval(p.read())
                     save_to_path = self.train_folder
                     if type(data_path) in [list, tuple]:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -769,7 +769,7 @@ class TransferLearning:
                             model_name,
                         )
                     else:
-                        TransferLearning.__save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(  # type: ignore
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -837,7 +837,7 @@ class TransferLearning:
                 )
                 os.mkdir(split_path)
                 for params in divided_all_params:
-                    TransferLearning.__save_unused_params(  # type: ignore
+                    TransferLearning._save_unused_params(  # type: ignore
                         [
                             params,
                             str(skiped_models).replace("'", '"'),
@@ -981,7 +981,7 @@ class TransferLearning:
 
         return model, os.path.join(save_to_path, model_name + "_checkpoint.h5"), history
 
-    def __check_errs(
+    def _check_errs(
         gpu: bool,  # type: ignore
         device_memory: int,
         split_to_data_path,
@@ -1079,7 +1079,7 @@ class TransferLearning:
                 "Your data_split_ratio value not valid. data_split_ratio:tuple=(train, test) note: val= 1-(train+test). sum of data_split_ratio must be 1. example: (0.8, 0.1) => %80 train, %10 test, %10 validation"
             )
 
-    def __print_info(
+    def _print_info(
         best_values: dict,  # type: ignore
         model_name: str,
         params,
@@ -1254,7 +1254,7 @@ class TransferLearning:
             else:
                 print("😫 patience: " + str(patience) + "\n")
 
-    def __save_unused_params(
+    def _save_unused_params(
         params: list, save_to_path: str, model_name: str, split: bool = False  # type: ignore
     ):
         n_params = []
@@ -1293,7 +1293,7 @@ class TransferLearning:
             ) as f:
                 f.write(str(params).replace("'", ""))
 
-    def __write_to_log_file(text, save_to_path):  # type: ignore
+    def _write_to_log_file(text, save_to_path):  # type: ignore
         if not os.path.exists(save_to_path):
             raise FileNotFoundError(
                 f"Can't find path 🤷‍♂️\nsave_to_path: {save_to_path}"
@@ -1336,9 +1336,9 @@ class TransferLearning:
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         BurobotOutput.clear_and_memory_to()
 
-        def ___save_unused_params(save_data_paths):
+        def _save_unused_params(save_data_paths):
             if type(save_data_paths) in [tuple, list]:
-                TransferLearning.__save_unused_params(  # type: ignore
+                TransferLearning._save_unused_params(  # type: ignore
                     [
                         all_params,
                         str(skiped_models).replace("'", '"'),
@@ -1370,7 +1370,7 @@ class TransferLearning:
                     model_name,
                 )
             else:
-                TransferLearning.__save_unused_params(  # type: ignore
+                TransferLearning._save_unused_params(  # type: ignore
                     [
                         all_params,
                         str(skiped_models).replace("'", '"'),
@@ -1399,7 +1399,7 @@ class TransferLearning:
                 )
 
         if type(params) != str:
-            TransferLearning.__check_errs(  # type: ignore
+            TransferLearning._check_errs(  # type: ignore
                 gpu,
                 device_memory,
                 split_to_data_path,
@@ -1442,20 +1442,20 @@ class TransferLearning:
         len_base_models = 0
 
         if type(params) != str:
-            for key, value in params.__dict__.items():
+            for key, value in params._dict_.items():
                 if type(value) in [tuple, list]:
                     new_list = []
                     for item in value:
-                        if callable(item) and hasattr(item, "__module__"):
-                            module = ".".join(str(item.__module__).split(".")[:2])
-                            qual_name = item.__qualname__
+                        if callable(item) and hasattr(item, "_module_"):
+                            module = ".".join(str(item._module_).split(".")[:2])
+                            qual_name = item._qualname_
                             new_list.append(f"tf.{module}.{qual_name}")
                         else:
                             new_list.append(item)
                     def_params[key] = new_list
                 else:
-                    if callable(value) and hasattr(value, "__module__"):
-                        def_params[key] = f"tf.{value.__module__}.{value.__qualname__}"
+                    if callable(value) and hasattr(value, "_module_"):
+                        def_params[key] = f"tf.{value._module_}.{value._qualname_}"
                     else:
                         def_params[key] = value
 
@@ -1530,7 +1530,7 @@ class TransferLearning:
                         save_to_path = os.path.join(
                             save_to_path, model_name + "_train_" + str(i)
                         )
-                    TransferLearning.__write_to_log_file("", save_to_path)  # type: ignore
+                    TransferLearning._write_to_log_file("", save_to_path)  # type: ignore
                     del i
                     break
                 except FileExistsError:
@@ -1582,7 +1582,7 @@ class TransferLearning:
                     else:
                         raise ValueError("data_path Value must be str, list or tuple 🔢")
 
-                TransferLearning.__write_to_log_file(
+                TransferLearning._write_to_log_file(
                     "Loaded un_used_params file\nContinuing training", save_to_path  # type: ignore
                 )
 
@@ -1638,7 +1638,7 @@ class TransferLearning:
                 |   |   ...
                 |   ...
                 """
-                TransferLearning.__write_to_log_file(
+                TransferLearning._write_to_log_file(
                     "Error in the splitting data! Please check your folder tree. folder tree must be like this:\n"
                     + file_tree,  # type: ignore
                     save_to_path,
@@ -1764,9 +1764,9 @@ class TransferLearning:
                                 "⚠️ Patience is disabled because there are no models to be tested. Running all params with ordered base models."
                             )
                             time.sleep(2)
-                        ___save_unused_params(save_data_paths)  # type: ignore
+                        _save_unused_params(save_data_paths)  # type: ignore
                         continue
-                TransferLearning.__print_info(  # type: ignore
+                TransferLearning._print_info(  # type: ignore
                     best_values,
                     model_name,
                     params,
@@ -1791,7 +1791,7 @@ class TransferLearning:
                 )
                 model_exception = None
                 try:
-                    ___save_unused_params(save_data_paths)  # type: ignore
+                    _save_unused_params(save_data_paths)  # type: ignore
                     (
                         model,
                         checkpoint_model_path,
@@ -1820,7 +1820,7 @@ class TransferLearning:
                     )
                 except Exception as e:
                     model_exception = str(e)
-                    TransferLearning.__write_to_log_file(
+                    TransferLearning._write_to_log_file(
                         "Model train error:\n"
                         + str(e)
                         + "\nParams:"
@@ -1844,13 +1844,13 @@ class TransferLearning:
                         patience -= 1
 
                     del all_params[0]
-                    ___save_unused_params(save_data_paths)  # type: ignore
+                    _save_unused_params(save_data_paths)  # type: ignore
                     continue
                 print("Testing Model 🥼")
                 test_acc, predictions = test_model(
                     model, test_data, device_memory, return_predictions=True
                 )  # type: ignore
-                TransferLearning.__write_to_log_file(
+                TransferLearning._write_to_log_file(
                     "Tested Model:\nAccuracy:"
                     + (("%" + str(test_acc)) if test_acc != -1 else "Overfitting"),  # type: ignore
                     save_to_path,
@@ -1860,7 +1860,7 @@ class TransferLearning:
                 checkpoint_test_acc, checkpoint_predictions = test_model(
                     checkpoint_model, test_data, device_memory, return_predictions=True
                 )  # type: ignore
-                TransferLearning.__write_to_log_file(
+                TransferLearning._write_to_log_file(
                     "Tested Checkpoint Model:\nAccuracy:"
                     + (
                         ("%" + str(checkpoint_test_acc))
@@ -1874,7 +1874,7 @@ class TransferLearning:
                     os.path.join(save_to_path, model_name + "_last(checkpoint).h5")
                 )
                 my_data_loader = BurobotImageData.ImageLoader()
-                __draw_model(
+                _draw_model(
                     history,
                     predictions,
                     model_name,
@@ -1943,7 +1943,7 @@ class TransferLearning:
                             )
                         else:
                             best_values[key] = eval(key)
-                    __draw_model(
+                    _draw_model(
                         history,
                         predictions,
                         model_name,
@@ -1961,14 +1961,14 @@ class TransferLearning:
 
                 del all_params[0]
 
-                ___save_unused_params(save_data_paths)  # type: ignore
+                _save_unused_params(save_data_paths)  # type: ignore
             except KeyboardInterrupt:
-                TransferLearning.__write_to_log_file("User stoped", save_to_path)  # type: ignore
+                TransferLearning._write_to_log_file("User stoped", save_to_path)  # type: ignore
                 print("\nI-i s-stopped 🙌")
                 sys.exit()
                 pass
             except Exception as e:
-                TransferLearning.__write_to_log_file("Error: " + str(e), save_to_path)  # type: ignore
+                TransferLearning._write_to_log_file("Error: " + str(e), save_to_path)  # type: ignore
                 print("Something went wrong. Skiping to next model 😵‍💫")
                 continue
 
