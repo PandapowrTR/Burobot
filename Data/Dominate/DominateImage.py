@@ -303,13 +303,35 @@ def covert_image_rgb(path: str):
         for f in files:
             try:
                 img = cv2.imread(f)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 os.remove(f)
                 cv2.imwrite(f, img)
             except:
                 pass
     os.chdir(old_path)
 
+def convert_image_to(path:str, color_space):
+    """
+    Convert images in a directory to the Any color space.
 
+    Args:
+        path (str): The path to the directory containing the images.
+    """
+    if not os.path.exists(path):
+        FileNotFoundError("Can't find path 🤷\npath:" + str(path))
+    old_path = os.getcwd()
+    os.chdir(path)
+    for root, _, files in os.walk(path):
+        os.chdir(root)
+        for f in files:
+            try:
+                img = cv2.imread(f)
+                img = cv2.cvtColor(img, color_space)
+                os.remove(f)
+                cv2.imwrite(f, img)
+            except:
+                pass
+    os.chdir(old_path)
 # Function to resize all images
 def resize_all_images(path: str, size: tuple):
     """
