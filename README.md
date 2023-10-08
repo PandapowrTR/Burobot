@@ -5,7 +5,6 @@
 - Data Management Tools (Image Data Splitter, Duplicate Image Finder, Duplicate Image Deleter, Similar Image Finder, Similar Image Deleter, Image Count Equalizer, RGB Converter, Image Resizer, Image Data Augmentation Tool, Label to txt splitter, Image to txt splitter, Image and Label to txt splitter, ....)
 - Data Collection Tools (Simple Data Collector, Text Data Collector, Image Data Collector, ...)
 - Developer Tools (Image Data Loader, Image Data Counter, ...)
-# Image Classification Model Finder 
     
 Burobot is a powerful Python library for developing and testing deep learning models. It helps you find the Best Artifical intelegent models.
 
@@ -68,6 +67,7 @@ best_model, best_acc, best_values, best_history, tokenizer = NLPL.FindModel(
 - gpu:Option to use gpu. Default True
 - stop_massages:Stop option in messages. Default True 
 
+# Image Classification Model Finder 
 # Image Classification Model Finder NEW MODEL 👨
 
 First, let's import the necessary libraries
