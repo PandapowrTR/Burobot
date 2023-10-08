@@ -11,7 +11,7 @@ Burobot is a powerful Python library for developing and testing deep learning mo
 
 In this section, we will examine a Python code example for finding an image classification model using Burobot.
 
-# Image Classification Model Finder NEW MODEL 🆕
+# Image Classification Model Finder NEW MODEL 👨
 
 First, let's import the necessary libraries
 ```py
@@ -142,3 +142,61 @@ best_model, best_acc, best_values, best_history = TL.FindModel(
 )
 ```
 In this code device_memory updated to 1
+
+# Natural Language Processing 🆕
+First import Burobot Best NLP Model Finder
+```py
+from Burobot.Training.NLP import Learning as NLP
+
+```py
+params = NLP.Params(
+    embedding_outputs=[100, 200, 300, 500, 800],
+    lstm_units=[256, 512],
+    lstm_activation_functions=NLPL.Params.get_activation_functions()[:1],
+    lstm_count_limit=2,
+    dense_units=[256, 512],
+    dense_count_limit=3,
+    dense_activation_functions=NLPL.Params.get_activation_functions()[:1],
+    output_activation_functions=NLPL.Params.get_output_activation_functions()[:1],
+    loss_functions=NLPL.Params.get_loss_functions()[:1],
+    optimizers=NLPL.Params.get_optimizers()[:1],
+    epochs=500
+)
+```
+This code defines the following parameters:
+
+- embedding_outputs: The number of dimensions to use for the embedding layer.
+- lstm_units: The number of units in the LSTM layer.
+- lstm_activation_functions: The activation function to use in the LSTM layer.
+- lstm_count_limit: The maximum number of LSTM layers to use in the model.
+- dense_units: The number of units in the dense layer.
+- dense_count_limit: Number of dense layers.
+- dense_activation_functions: The activation function to use in the dense layer.
+- output_activation_functions: The activation function to use in the output layer.
+- loss_functions: The loss function to use to train the model.
+- optimizers: The optimizer to use to train the model.
+- epochs: The number of epochs to train the model for.
+
+```
+Next, let's define the save_to_path , data_path and test_path variables:
+```py
+save_to_path = "path/to/save"
+data_path = "path/to/data.json"
+test_data = "path/to/test.json"
+```
+These variables specify the path where the trained model will be saved, the path to the training data and the path to the test data, respectively.
+
+Finally, let's find the best natural language processing model using the NLP.FindModel() function:
+```py
+best_model, best_acc, best_values, best_history, tokenizer = NLPL.FindModel(
+    params, data_path, test_data, save_to_path, model_name, 3000, stop_massages=False
+)
+```
+- params: The params object
+- data_path: Model dataset path
+- test_data: Model test dataset path
+- save_to_path:Path to Train folder be saved
+- model_name:To be trained model name
+- tokenizer_num_words:num words param for tokenizer
+- gpu:Option to use gpu. Default True
+- stop_massages:Stop option in messages. Default True 
