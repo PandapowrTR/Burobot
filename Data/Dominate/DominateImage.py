@@ -303,7 +303,6 @@ def covert_image_rgb(path: str):
         for f in files:
             try:
                 img = cv2.imread(f)
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 os.remove(f)
                 cv2.imwrite(f, img)
             except:
