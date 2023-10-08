@@ -118,15 +118,24 @@ def split_data(data_path: str, train_radio: float = 0.8):
     data = None
     with open(data_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+    data_name = ".".join(data_path.split("/")[-1].split("\\")[-1].split(".")[:-1])
     data = data["intents"]
-    data_name = data_path.split("/")[-1].split("\\")[-1].split(".")[:-1]
+    train = {"intents": []}
+    test = {"intents": []}
     train_count = int(len(data) * train_radio)
-    train = {"intents": data[:train_count]}
-    test = {"intents": data[train_count:]}
+    print("Splitting data 🔪📜")
+    for d in data:
+        tag = str(d["tag"])
+        patterns = list(d["patterns"])
+        answers = list(d["answers"])
+        train["intents"].append({"tag": tag, "patterns":patterns[:train_count], "answers":answers[:train_count]})
+        test["intents"].append({"tag": tag, "patterns":patterns[train_count:], "answers":answers[train_count:]})
+
+    
     with open(
         os.path.join(
-            ".".join(data_path.split(".")[:-1]).replace(".json", ""),
-            data_path + "_train.json",
+            data_name.join(data_path.split(data_name)[:-1]),
+            data_name + "_train.json",
         ),
         "w",
         encoding="utf-8"
@@ -134,10 +143,11 @@ def split_data(data_path: str, train_radio: float = 0.8):
         json.dump(train, tr, ensure_ascii=False)
     with open(
         os.path.join(
-            ".".join(data_path.split(".")[:-1]).replace(".json", ""),
-            data_path + "_test.json",
+            data_name.join(data_path.split(data_name)[:-1]),
+            data_name + "_test.json",
         ),
         "w",
         encoding="utf-8"
     ) as te:
         json.dump(test, te, ensure_ascii=False)
+    print("Data succesfuly splitted 😋")
