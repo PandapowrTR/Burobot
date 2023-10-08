@@ -316,6 +316,7 @@ def convert_image_to(path:str, color_space):
 
     Args:
         path (str): The path to the directory containing the images.
+        color_space (cv2.COLOR_[YOURTYPE]2[WANTEDTYPE]): Color space type.
     """
     if not os.path.exists(path):
         FileNotFoundError("Can't find path 🤷\npath:" + str(path))
