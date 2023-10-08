@@ -18,14 +18,14 @@ Then, let's define the model parameters using a NLP.Params object:
 params = NLP.Params(
     embedding_outputs=[100, 200, 300, 500, 800],
     lstm_units=[256, 512],
-    lstm_activation_functions=NLPL.Params.get_activation_functions()[:1],
+    lstm_activation_functions=NLP.Params.get_activation_functions()[:1],
     lstm_count_limit=2,
     dense_units=[256, 512],
     dense_count_limit=3,
-    dense_activation_functions=NLPL.Params.get_activation_functions()[:1],
-    output_activation_functions=NLPL.Params.get_output_activation_functions()[:1],
-    loss_functions=NLPL.Params.get_loss_functions()[:1],
-    optimizers=NLPL.Params.get_optimizers()[:1],
+    dense_activation_functions=NLP.Params.get_activation_functions()[:1],
+    output_activation_functions=NLP.Params.get_output_activation_functions()[:1],
+    loss_functions=NLP.Params.get_loss_functions()[:1],
+    optimizers=NLP.Params.get_optimizers()[:1],
     epochs=500
 )
 ```
@@ -53,7 +53,7 @@ These variables specify the path where the trained model will be saved, the path
 
 Finally, let's find the best natural language processing model using the NLP.FindModel() function:
 ```py
-best_model, best_acc, best_values, best_history, tokenizer = NLPL.FindModel(
+best_model, best_acc, best_values, best_history, tokenizer = NLP.FindModel(
     params, data_path, test_data, save_to_path, model_name, 3000, stop_massages=False
 )
 ```
