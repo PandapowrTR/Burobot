@@ -43,9 +43,9 @@ This code defines the following parameters:
 - optimizers: The optimizer to use to train the model.
 - epochs: The number of epochs to train the model for.
 
-```
-Next, let's define the save_to_path , data_path and test_path variables:
 ```py
+Next, let's define the save_to_path , data_path and test_path variables:
+```
 save_to_path = "path/to/save"
 data_path = "path/to/data.json"
 test_data = "path/to/test.json"
