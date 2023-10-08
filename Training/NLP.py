@@ -561,6 +561,7 @@ class Learning:
                 if model is None or history is None:
                     last_acc = -1
                     continue
+                model.save(os.path.join(save_to_path, model_name+"_last.h5"))
                 print("Testing model 🥼")
                 test_acc = Learning.test_model(
                     model, x_test, y_test, x_train_shape_1, tokenizer
@@ -568,6 +569,7 @@ class Learning:
                 if os.path.exists(checkpoint_path):
                     print("Testing checkpoint model 🥼")
                     checkpoint_model = tf.keras.models.load_model(checkpoint_path)
+                    checkpoint_model.save(os.path.join(save_to_path, model_name+"_last(checkpoint).h5"))
                     checkpoint_test_acc = Learning.test_model(
                         checkpoint_model, x_test, y_test, x_train_shape_1, tokenizer
                     )
@@ -580,6 +582,7 @@ class Learning:
                 if test_acc > (best_acc if best_acc is not None else 0):
                     best_acc = test_acc
                     best_model = model
+                    best_model.save(os.path.join(save_to_path, model_name+"_best.h5"))
                     best_history = history
                     best_values = {
                         "embedding_output": embedding_output,
