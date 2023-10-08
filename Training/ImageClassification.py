@@ -175,7 +175,7 @@ def _draw_model(
 class TransferLearning:
     conv0 = False
     class Params:
-        def _init_(
+        def __init__(
             self,
             dense_units=None,
             dense_count=None,
@@ -459,7 +459,7 @@ class TransferLearning:
             ]
 
         class dominate_params_file:
-            def _init_(self, params_file_path, train_folder):
+            def ___init___(self, params_file_path, train_folder):
                 if not os.path.exists(params_file_path) or not os.path.isfile(
                     params_file_path
                 ):
