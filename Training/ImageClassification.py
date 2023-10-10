@@ -517,7 +517,6 @@ class TransferLearning:
                             raise FileNotFoundError(
                                 "Cant find path 🤷\nnew_data_path: " + str(p)
                             )
-                    print(len(new_data_path))
                     if len(new_data_path) != 3:
                         raise ValueError(
                             "Cant find paths. if new_data_paths value is list or tuple value must like this ['train/datas/path', 'test/datas/path', 'val/datas/path]\nnew_data_paths"
