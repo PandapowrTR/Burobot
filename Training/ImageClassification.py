@@ -1335,7 +1335,7 @@ class TransferLearning:
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         BurobotOutput.clear_and_memory_to()
 
-        def _save_unused_params(save_data_paths):
+        def _save_unused_params_(save_data_paths):
             if type(save_data_paths) in [tuple, list]:
                 TransferLearning._save_unused_params(  # type: ignore
                     [
@@ -1554,7 +1554,6 @@ class TransferLearning:
                     def_params,
                 ) = eval(p.read())
                 params = TransferLearning.Params(epochs=epochs, kwargs=def_params)
-
                 if device_memory is None or device_memory <= 0:
                     device_memory = _device_memory
                 if data_path is None:
@@ -1763,7 +1762,7 @@ class TransferLearning:
                                 "⚠️ Patience is disabled because there are no models to be tested. Running all params with ordered base models."
                             )
                             time.sleep(2)
-                        _save_unused_params(save_data_paths)  # type: ignore
+                        _save_unused_params_(save_data_paths)  # type: ignore
                         continue
                 TransferLearning._print_info(  # type: ignore
                     best_values,
@@ -1790,7 +1789,7 @@ class TransferLearning:
                 )
                 model_exception = None
                 try:
-                    _save_unused_params(save_data_paths)  # type: ignore
+                    _save_unused_params_(save_data_paths)  # type: ignore
                     (
                         model,
                         checkpoint_model_path,
@@ -1843,7 +1842,7 @@ class TransferLearning:
                         patience -= 1
 
                     del all_params[0]
-                    _save_unused_params(save_data_paths)  # type: ignore
+                    _save_unused_params_(save_data_paths)  # type: ignore
                     continue
                 print("Testing Model 🥼")
                 test_acc, predictions = test_model(
@@ -1960,7 +1959,7 @@ class TransferLearning:
 
                 del all_params[0]
 
-                _save_unused_params(save_data_paths)  # type: ignore
+                _save_unused_params_(save_data_paths)  # type: ignore
             except KeyboardInterrupt:
                 TransferLearning._write_to_log_file("User stoped", save_to_path)  # type: ignore
                 print("\nI-i s-stopped 🙌")
