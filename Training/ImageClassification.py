@@ -1457,7 +1457,6 @@ class TransferLearning:
                     else:
                         def_params[key] = value
 
-            len_base_models = len(params.base_models)  # type: ignore
             if stop_massages:
                 if len(params.base_models) == 1:  # type: ignore
                     patience = None
@@ -1601,6 +1600,7 @@ class TransferLearning:
                 best_model = None
                 best_acc = None
 
+        len_base_models = len(params.base_models)  # type: ignore
         train_path, test_path, val_path = None, None, None
         BurobotOutput.clear_and_memory_to()
         if type(data_path) == str:
