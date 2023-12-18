@@ -55,36 +55,38 @@ def test_model(model, test_data, device_memory: int, return_predictions: bool = 
             test_size += 1
             img = np.expand_dims(images[i].numpy() / 255, 0)
             pred = np.argmax(model.predict(img, verbose=0))
-
-            if (
-                test_data.class_names[np.argmax(labels[i])]
-                == test_data.class_names[pred]
-            ):
+            pred = test_data.class_names[pred]
+            real = test_data.class_names[np.argmax(labels[i])]
+            # if prediction is true
+            if real == pred:
                 test_acc += 1
                 predictions.append(
                     {
-                        "Real": test_data.class_names[np.argmax(labels[i])],
-                        "Predicted": test_data.class_names[pred],
+                        "Real": real,
+                        "Predicted": pred,
                         "result": True,
                     }
                 )
+            # if prediction is false
             else:
                 predictions.append(
                     {
-                        "Real": test_data.class_names[np.argmax(labels[i])],
-                        "Predicted": test_data.class_names[pred],
+                        "Real": real,
+                        "Predicted": pred,
                         "result": False,
                     }
                 )
-
-            if previous_prediction == test_data.class_names[pred]:
+            # if previous prediction is equal to current prediction
+            if previous_prediction == pred:
+                # increase same class counter
                 same_class_count += 1
-
+            # if previous prediction is NOT equal to current prediction
             else:
-                previous_prediction = test_data.class_names[pred]
+                # reset the same class counter and previous prediction value
+                previous_prediction = pred
                 same_class_count = 0
-
-            if same_class_count >= int(test_class_counts[previous_prediction] * 1.7):
+            # if same class counter value is bigger or equal to 1.7 times more than previous prediction
+            if same_class_count >= int(test_class_counts[previous_prediction] * 1.3):
                 tf.keras.backend.clear_session()
                 gc.collect()
                 print("\r" + " " * 80, end="")
@@ -94,6 +96,46 @@ def test_model(model, test_data, device_memory: int, return_predictions: bool = 
                 if return_predictions:
                     return -1, predictions
                 return -1
+    class_predictions = {}
+    class_counts = {}
+    for p in predictions:
+        if p["Predicted"] not in list(class_predictions.keys()):
+            class_predictions[p["Predicted"]] = 1
+        else:
+            class_predictions[p["Predicted"]] += 1
+        if p["Real"] not in list(class_counts.keys()):
+            class_counts[p["Real"]] = 1
+        else:
+            class_counts[p["Real"]] += 1
+    overfitting_threshold_big = 1.3
+    overfitting_threshold_small = 0.1
+    for key in class_predictions.keys():
+        if class_counts[key] <= 20:
+            overfitting_threshold_big = 1.5
+            overfitting_threshold_small = 0.1
+        elif class_counts[key] <= 100:
+            overfitting_threshold_big = 1.4
+            overfitting_threshold_small = 0.08
+        elif class_counts[key] <= 200:
+            overfitting_threshold_big = 1.3
+            overfitting_threshold_small = 0.04
+        elif class_counts[key] <= 500:
+            overfitting_threshold_big = 1.2
+            overfitting_threshold_small = 0.01
+        elif class_counts[key] <= 1000:
+            overfitting_threshold_big = 1.1
+            overfitting_threshold_small = 0.01
+        else:
+            overfitting_threshold_big = 1.05
+            overfitting_threshold_small = 0.01
+        if (
+            class_predictions[key] >= class_counts[key] * overfitting_threshold_big
+            or class_predictions[key] <= class_counts[key] * overfitting_threshold_small
+        ):
+            if return_predictions:
+                return -1, predictions
+            return -1
+
     print()
     test_acc = test_acc / test_size * 100
     if return_predictions:
@@ -173,6 +215,7 @@ def _draw_model(
 
 class TransferLearning:
     conv0 = False
+
     class Params:
         def __init__(
             self,
@@ -1271,7 +1314,9 @@ class TransferLearning:
             )[-1].replace("'>", "")
         if not split:
             with open(
-                os.path.join(save_to_path, model_name + "_unused_params.txt"), "w", encoding="utf-8"
+                os.path.join(save_to_path, model_name + "_unused_params.txt"),
+                "w",
+                encoding="utf-8",
             ) as f:
                 f.write(str(params).replace("'", ""))
         else:
@@ -1287,7 +1332,9 @@ class TransferLearning:
                     params_file_end += "_1"
 
             with open(
-                os.path.join(save_to_path, model_name + params_file_end + ".txt"), "w", encoding="utf-8"
+                os.path.join(save_to_path, model_name + params_file_end + ".txt"),
+                "w",
+                encoding="utf-8",
             ) as f:
                 f.write(str(params).replace("'", ""))
 
@@ -1310,7 +1357,9 @@ class TransferLearning:
                 + text
             )
         text = text + "\n" + "=" * 83
-        with open(os.path.join(save_to_path, "log.txt"), mode, encoding="utf-8") as log_file:
+        with open(
+            os.path.join(save_to_path, "log.txt"), mode, encoding="utf-8"
+        ) as log_file:
             if mode == "a":
                 log_file.write("\n" + text + "\n")
             else:
@@ -1837,7 +1886,10 @@ class TransferLearning:
                         ] = -2
                     c += 1
                     last_acc = -2
-                    if patience is not None and model_exception != "Model is unnecessary 🚮":
+                    if (
+                        patience is not None
+                        and model_exception != "Model is unnecessary 🚮"
+                    ):
                         patience -= 1
 
                     del all_params[0]
