@@ -950,11 +950,18 @@ class TransferLearning:
         if (conv_filters > 0 and conv_count == 0) and (TransferLearning.conv0):
             raise Exception("Model is unnecessary 🚮")
         for i in range(1, conv_count + 1):
+            b = False
             if (conv_filters > 0 and conv_count == 0) and not (TransferLearning.conv0):
                 TransferLearning.conv0 = True
             filters = conv_filters if i % 2 != 0 else int(conv_filters / 2)
             for _ in range(conv_layer_repeat_limit):
-                x = tf.keras.layers.Conv2D(filters=filters, kernel_size=(3, 3))(x)
+                try:
+                    x = tf.keras.layers.Conv2D(filters=filters, kernel_size=(3, 3))(x)
+                except:
+                    b = True
+                    break
+            if b:
+                break
             x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding="same")(x)
 
         x = tf.keras.layers.Flatten()(x)
