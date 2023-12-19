@@ -980,16 +980,6 @@ class TransferLearning:
 
         model.compile(optimizer=optimizer(), loss=loss_function, metrics=["accuracy"])  # type: ignore
 
-        divide = 2
-        if epochs >= 1000:
-            divide = 4
-        elif epochs >= 500:
-            divide = 3
-        elif epochs >= 100:
-            divide = 2.5
-        else:
-            divide = 2
-
         num_cores = os.cpu_count()
 
         system_memory_gb = psutil.virtual_memory().total / (1024**3)
@@ -997,7 +987,13 @@ class TransferLearning:
         workers = min(num_cores // 2, int(system_memory_gb // 2))  # type: ignore
         workers = max(1, int(workers * 0.8))
 
-        patience = max(1, int((epochs * 0.3) / divide))
+        prime_divisors = []
+        for p in range(2, epochs // 2 + 1):
+            if epochs % p == 0:
+                prime_divisors.append(p)
+        if len(prime_divisors) == 0:
+            prime_divisors = [0]
+        patience = max(1, prime_divisors[int(len(prime_divisors) * 0.3)])
         reduce = tf.keras.callbacks.ReduceLROnPlateau(
             monitor="val_loss", factor=0.005, patience=patience, verbose=1, mode="min"
         )
@@ -1011,6 +1007,7 @@ class TransferLearning:
             save_best_only=True,
         )
         print("🍕 batch_size: " + str(batch_size))
+        print("🧘 model patience: " + str(patience))
         if use_multiprocessing:
             print("👷 workers: " + str(workers))
         history = model.fit(

@@ -218,16 +218,13 @@ class Learning:
                 metrics=["accuracy"],
             )
 
-            divide = 2
-            if epochs >= 1000:
-                divide = 4
-            elif epochs >= 500:
-                divide = 3
-            elif epochs >= 100:
-                divide = 2.5
-            else:
-                divide = 2
-            patience = max(1, int((epochs * 0.3) / divide))
+            prime_divisors = []
+            for p in range(2, epochs // 2 + 1):
+                if epochs % p == 0:
+                    prime_divisors.append(p)
+            if len(prime_divisors) == 0:
+                prime_divisors = [0]
+            patience = max(1, prime_divisors[int(len(prime_divisors) * 0.3)])
             reduce = tf.keras.callbacks.ReduceLROnPlateau(
                 monitor="loss", factor=0.005, patience=patience, verbose=1, mode="min"
             )
