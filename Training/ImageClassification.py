@@ -1,5 +1,5 @@
 # BUROBOT
-import os, gc, sys, itertools, time, psutil, threading
+import os, gc, sys, itertools, time, psutil, threading, random
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 try:
@@ -15,24 +15,22 @@ import numpy as np
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 from Burobot.tools import BurobotOutput
 from Burobot.tools import BurobotImageData
+from Burobot.tools import BurobotOther
 from Burobot.Data.Dominate import DominateImage
 
 
-def test_model(model, test_data, device_memory: int, return_predictions: bool = False):
+def test_model(model, test_data, return_predictions: bool = False):
     """Test the model on test data and calculate accuracy.
 
     Args:
         model: The trained model.
         test_data: Test data in a suitable format.
-        device_memory: Amount of device memory in GB.
         return_predictions: Whether to return prediction results.
 
     Returns:
         The test accuracy or -1 if memory threshold exceeded.
         If return_predictions is True, it also returns prediction results.
     """
-    if device_memory <= 0:
-        raise ValueError("device_memory must be larger than 0 🔢")
     test_class_counts = test_data.reduce(
         tf.zeros(len(test_data.class_names), dtype=tf.int32),
         lambda x, y: x + tf.reduce_sum(tf.cast(y[1], tf.int32), axis=0),
@@ -203,7 +201,6 @@ def _draw_model(
     disp.plot(cmap="Blues", ax=ax3, xticks_rotation="vertical")
 
     os.chdir(save_to_path)
-    plt.savefig(model_output + ".jpg")
 
     if model_output + ".jpg" in os.listdir():
         os.remove(model_output + ".jpg")
@@ -214,8 +211,6 @@ def _draw_model(
 
 
 class TransferLearning:
-    conv0 = False
-
     class Params:
         def __init__(
             self,
@@ -232,6 +227,7 @@ class TransferLearning:
             frozen_layers=None,
             base_models=None,
             epochs=None,
+            batch_sizes=None,
             **kwargs,
         ):
             if kwargs:
@@ -242,6 +238,7 @@ class TransferLearning:
                 conv_layer_repeat_limit = kwargs["kwargs"]["conv_layer_repeat_limit"]
                 drop_outs = kwargs["kwargs"]["drop_outs"]
                 frozen_layers = kwargs["kwargs"]["frozen_layers"]
+                batch_sizes = kwargs["kwargs"]["batch_sizes"]
 
                 activation_functions = eval(
                     str(kwargs["kwargs"]["activation_functions"]).replace("'", "")
@@ -303,23 +300,31 @@ class TransferLearning:
                     frozen_layers,
                     base_models,
                     epochs,
+                    batch_sizes,
                 ]:
                     raise ValueError(
                         "One or more mandatory parameters are missing. Please provide the missing parameter 🔢"
                     )
                 for itmind, items in enumerate(
-                    [dense_units, drop_outs, conv_filters, conv_count, dense_count]
+                    [
+                        dense_units,
+                        drop_outs,
+                        conv_filters,
+                        conv_count,
+                        dense_count,
+                        batch_sizes,
+                    ]
                 ):
                     if items is not None:
                         for item in items:
-                            if (type(item) == int and itmind in [0, 2, 3, 4]) or (
+                            if (type(item) == int and itmind in [0, 2, 3, 4, 5]) or (
                                 type(item) == float and itmind == 1
                             ):
-                                if item <= 0 and itmind in [0, 2, 4]:
+                                if item <= 0 and itmind in [0, 2, 5]:
                                     raise ValueError(
-                                        "values must be larger than 0\nCheck this values: dense_units, conv_filters, dense_count 🔢"
+                                        "values must be larger than 0\nCheck this values: dense_units, conv_filters, dense_count, batch_sizes 🔢"
                                     )
-                                elif itmind in [1, 3] and item < 0:
+                                elif itmind in [1, 3, 4] and item < 0:
                                     raise ValueError(
                                         "values must be larger or equal to 0.\nCheck this values: drop_outs, conv_count 🔢"
                                     )
@@ -347,6 +352,7 @@ class TransferLearning:
                     or optimizers is None
                     or base_models is None
                     or epochs is None
+                    or batch_sizes is None
                 ):
                     if not (
                         len(dense_units) > 0
@@ -357,6 +363,7 @@ class TransferLearning:
                         and len(optimizers) > 0
                         and len(base_models) > 0
                         and epochs > 0
+                        and len(batch_sizes) > 0
                     ):
                         raise Exception(
                             "Your dense_units, conv_layer_repeat_limit, drop_outs, activation_functions, loss_functions, optimizers, base_models and epochs value(s) are not true. Please check your values! 🔢"
@@ -388,6 +395,7 @@ class TransferLearning:
             self.output_activation_functions = output_activation_functions
             self.frozen_layers = frozen_layers
             self.epochs = epochs
+            self.batch_sizes = batch_sizes
             self.base_models = base_models
 
         def get_activation_functions():
@@ -521,7 +529,6 @@ class TransferLearning:
                             patience,
                             def_patience,
                             model_name,
-                            device_memory,
                             data_path,
                             use_multiprocessing,
                             def_params,
@@ -538,7 +545,6 @@ class TransferLearning:
                             patience,
                             def_patience,
                             model_name,
-                            device_memory,
                             data_path,
                             use_multiprocessing,
                             def_params,
@@ -588,14 +594,13 @@ class TransferLearning:
                         patience,
                         def_patience,
                         model_name,
-                        device_memory,
                         data_path,
                         use_multiprocessing,
                         def_params,
                     ) = eval(p.read())
                     save_to_path = self.train_folder
                     if type(new_data_path) in [list, tuple]:
-                        TransferLearning._save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -616,7 +621,6 @@ class TransferLearning:
                                 patience,
                                 def_patience,
                                 '"' + str(model_name) + '"',
-                                device_memory,
                                 [
                                     '"' + str(new_data_path[0]) + '"',
                                     '"' + str(new_data_path[1]) + '"',
@@ -629,7 +633,7 @@ class TransferLearning:
                             model_name,
                         )
                     elif type(new_data_path) == str:
-                        TransferLearning._save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -650,7 +654,6 @@ class TransferLearning:
                                 patience,
                                 def_patience,
                                 '"' + str(model_name) + '"',
-                                device_memory,
                                 '"' + str(new_data_path) + '"',
                                 use_multiprocessing,
                                 str(def_params).replace("'", '"'),
@@ -678,13 +681,12 @@ class TransferLearning:
                         patience,
                         def_patience,
                         model_name,
-                        device_memory,
                         data_path,
                         use_multiprocessing,
                         def_params,
                     ) = eval(p.read())
                     if type(data_path) == list:
-                        TransferLearning._save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -707,7 +709,6 @@ class TransferLearning:
                                 patience,
                                 def_patience,
                                 '"' + str(model_name) + '"',
-                                device_memory,
                                 [
                                     '"' + str(data_path[0]) + '"',
                                     '"' + str(data_path[1]) + '"',
@@ -720,7 +721,7 @@ class TransferLearning:
                             model_name,
                         )
                     else:
-                        TransferLearning._save_unused_params(  # type: ignore
+                        TransferLearning._save_unused_params(
                             [
                                 all_params,
                                 str(skiped_models).replace("'", '"'),
@@ -743,100 +744,11 @@ class TransferLearning:
                                 patience,
                                 def_patience,
                                 '"' + str(model_name) + '"',
-                                device_memory,
                                 '"' + str(data_path) + '"',
                                 use_multiprocessing,
                                 str(def_params).replace("'", '"'),
                             ],
                             new_train_folder_path,
-                            model_name,
-                        )
-
-            def update_device_memory(self, new_device_memory: int):
-                if new_device_memory <= 0:
-                    raise ValueError(
-                        "invalid device memory! device memory must be bigger than 0 🔢"
-                    )
-                with open(self.params_file_path, "r", encoding="utf-8") as p:
-                    print("Updating device_memory 🔃")
-                    (
-                        all_params,
-                        skiped_models,
-                        epochs,
-                        best_acc,
-                        save_to_path,
-                        _,
-                        base_models_accs,
-                        patience,
-                        def_patience,
-                        model_name,
-                        device_memory,
-                        data_path,
-                        use_multiprocessing,
-                        def_params,
-                    ) = eval(p.read())
-                    save_to_path = self.train_folder
-                    if type(data_path) in [list, tuple]:
-                        TransferLearning._save_unused_params(  # type: ignore
-                            [
-                                all_params,
-                                str(skiped_models).replace("'", '"'),
-                                epochs,
-                                best_acc,
-                                str('"' + save_to_path + '"').replace("'", '"'),
-                                str(
-                                    '"'
-                                    + os.path.join(
-                                        save_to_path, model_name + "_best.h5"
-                                    )
-                                    + '"'
-                                ),
-                                str(base_models_accs)
-                                .replace("'", '"')
-                                .replace('"[', "")
-                                .replace(']"', ""),
-                                patience,
-                                def_patience,
-                                '"' + str(model_name) + '"',
-                                new_device_memory,
-                                [
-                                    '"' + str(data_path[0]) + '"',
-                                    '"' + str(data_path[1]) + '"',
-                                    '"' + str(data_path[2]) + '"',
-                                ],
-                                str(def_params).replace("'", '"'),
-                            ],
-                            save_to_path,
-                            model_name,
-                        )
-                    else:
-                        TransferLearning._save_unused_params(  # type: ignore
-                            [
-                                all_params,
-                                str(skiped_models).replace("'", '"'),
-                                epochs,
-                                best_acc,
-                                str('"' + save_to_path + '"').replace("'", '"'),
-                                str(
-                                    '"'
-                                    + os.path.join(
-                                        save_to_path, model_name + "_best.h5"
-                                    )
-                                    + '"'
-                                ),
-                                str(base_models_accs)
-                                .replace("'", '"')
-                                .replace('"[', "")
-                                .replace(']"', ""),
-                                patience,
-                                def_patience,
-                                '"' + str(model_name) + '"',
-                                new_device_memory,
-                                '"' + str(data_path) + '"',
-                                use_multiprocessing,
-                                str(def_params).replace("'", '"'),
-                            ],
-                            save_to_path,
                             model_name,
                         )
 
@@ -855,7 +767,6 @@ class TransferLearning:
                         patience,
                         def_patience,
                         model_name,
-                        device_memory,
                         data_path,
                         use_multiprocessing,
                         def_params,
@@ -878,7 +789,7 @@ class TransferLearning:
                 )
                 os.mkdir(split_path)
                 for params in divided_all_params:
-                    TransferLearning._save_unused_params(  # type: ignore
+                    TransferLearning._save_unused_params(
                         [
                             params,
                             str(skiped_models).replace("'", '"'),
@@ -897,7 +808,6 @@ class TransferLearning:
                             patience,
                             def_patience,
                             '"' + str(model_name) + '"',
-                            device_memory,
                             '"' + str(data_path) + '"',
                             use_multiprocessing,
                             str(def_params).replace("'", '"'),
@@ -908,10 +818,9 @@ class TransferLearning:
                     )
 
     def create_model(
-        train_data: str,  # type: ignore
-        val_data: str,
-        img_shape,
-        batch_size,
+        train_data_path: str,
+        val_data_path: str,
+        batch_size: int,
         save_to_path: str,
         model_name: str,
         dense_units: int,
@@ -920,39 +829,46 @@ class TransferLearning:
         conv_count: int,
         conv_layer_repeat_limit: int,
         drop_out: float,
-        activation_function: tf.keras.activations,  # type: ignore
-        loss_function: tf.keras.losses,  # type: ignore
-        optimizer: tf.keras.optimizers,  # type: ignore
-        output_activation_function: tf.keras.activations,  # type: ignore
+        activation_function: tf.keras.activations,
+        loss_function: tf.keras.losses,
+        optimizer: tf.keras.optimizers,
+        output_activation_function: tf.keras.activations,
         frozen_layer: float,
         epochs: int,
-        base_model: tf.keras.applications,  # type: ignore
+        base_model: tf.keras.applications,
         use_multiprocessing: bool = False,
     ):
-        input_tensor = tf.keras.layers.Input(shape=img_shape)
+        base_model_shape = base_model().input_shape
+        # Converting all images to model resolution
+        DominateImage.resize_all_images(train_data_path, base_model_shape[1:-1])
+        train_data = BurobotImageData.ImageLoader().load_data(
+            train_data_path, batch_size
+        )
+        DominateImage.resize_all_images(val_data_path, base_model_shape[1:-1])
+        val_data = BurobotImageData.ImageLoader().load_data(val_data_path, batch_size)
+        del train_data_path, val_data_path
+        input_tensor = tf.keras.layers.Input(shape=base_model_shape[1:])
         cur_model = base_model(
-            weights="imagenet",
-            include_top=False,
-            input_shape=img_shape,
+            # weights="imagenet",
+            # include_top=False,
+            input_shape=base_model_shape[1:],
             input_tensor=input_tensor,
-        )  # type: ignore
-
+        )
         model = tf.keras.models.Sequential()
         for layer in cur_model.layers[: int(len(cur_model.layers) * frozen_layer)]:
             layer.trainable = False
+        for layer in cur_model.layers:
             try:
                 model.add(layer)
             except:
                 pass
-        global conv0
         x = cur_model.output
-        x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding="same")(x)
-        if (conv_filters > 0 and conv_count == 0) and (TransferLearning.conv0):
-            raise Exception("Model is unnecessary 🚮")
+        # x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding="same")(x)
+        #! if conv_count is 0 there is no reasion to be change the conv_filters value | NOT FINISHED
+        # if (conv_filters > 0 and conv_count == 0):
+        #     raise Exception("Model is unnecessary 🚮")
         for i in range(1, conv_count + 1):
             b = False
-            if (conv_filters > 0 and conv_count == 0) and not (TransferLearning.conv0):
-                TransferLearning.conv0 = True
             filters = conv_filters if i % 2 != 0 else int(conv_filters / 2)
             for _ in range(conv_layer_repeat_limit):
                 try:
@@ -963,9 +879,12 @@ class TransferLearning:
             if b:
                 break
             x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding="same")(x)
+        if type(x[-1]) != type(tf.keras.layers.Flatten):
+            x = tf.keras.layers.Flatten()(x)
 
-        x = tf.keras.layers.Flatten()(x)
-
+        #! if dense_count is 0 there is no reasion to be change the dense_units value | NOT FINISHED
+        # if (dense_units > 0 and dense_count == 0):
+        #     raise Exception("Model is unnecessary 🚮")
         for i in range(1, dense_count + 1):
             dense_units = dense_units if i % 2 != 0 else int(dense_units / 2)
             x = tf.keras.layers.Dropout(drop_out)(x)
@@ -974,17 +893,17 @@ class TransferLearning:
             )(x)
 
         predictions = tf.keras.layers.Dense(
-            units=len(train_data.class_names), activation=output_activation_function  # type: ignore
+            units=len(train_data.class_names), activation=output_activation_function
         )(x)
         model = tf.keras.models.Model(inputs=cur_model.input, outputs=predictions)
 
-        model.compile(optimizer=optimizer(), loss=loss_function, metrics=["accuracy"])  # type: ignore
+        model.compile(optimizer=optimizer(), loss=loss_function, metrics=["accuracy"])
 
         num_cores = os.cpu_count()
 
         system_memory_gb = psutil.virtual_memory().total / (1024**3)
 
-        workers = min(num_cores // 2, int(system_memory_gb // 2))  # type: ignore
+        workers = min(num_cores // 2, int(system_memory_gb // 2))
         workers = max(1, int(workers * 0.8))
 
         prime_divisors = []
@@ -995,7 +914,12 @@ class TransferLearning:
             prime_divisors = [0]
         patience = max(1, prime_divisors[int(len(prime_divisors) * 0.3)])
         reduce = tf.keras.callbacks.ReduceLROnPlateau(
-            monitor="val_loss", factor=0.005, patience=patience, verbose=1, mode="min"
+            monitor="val_loss",
+            factor=0.005,
+            patience=patience,
+            verbose=1,
+            mode="min",
+            min_delta=0.0100,
         )
         early_stoping = tf.keras.callbacks.EarlyStopping(
             monitor="val_loss", patience=patience + 1, mode="min"
@@ -1008,6 +932,12 @@ class TransferLearning:
         )
         print("🍕 batch_size: " + str(batch_size))
         print("🧘 model patience: " + str(patience))
+        print(
+            "🖼️ Model Resolution: "
+            + str(base_model_shape[1])
+            + "x"
+            + str(base_model_shape[2])
+        )
         if use_multiprocessing:
             print("👷 workers: " + str(workers))
         history = model.fit(
@@ -1016,7 +946,7 @@ class TransferLearning:
             validation_data=val_data,
             batch_size=batch_size,
             callbacks=[early_stoping, reduce, checkpoint],
-            verbose=1,  # type: ignore
+            verbose=1,
             use_multiprocessing=use_multiprocessing,
             workers=workers,
         )
@@ -1024,11 +954,15 @@ class TransferLearning:
         gc.collect()
         tf.keras.backend.clear_session()
 
-        return model, os.path.join(save_to_path, model_name + "_checkpoint.h5"), history
+        return (
+            model,
+            os.path.join(save_to_path, model_name + "_checkpoint.h5"),
+            history,
+            base_model_shape,
+        )
 
     def _check_errs(
-        gpu: bool,  # type: ignore
-        device_memory: int,
+        gpu: bool,
         split_to_data_path,
         patience,
         params,
@@ -1037,8 +971,6 @@ class TransferLearning:
         save_to_path: str,
         stop_massages: bool,
     ):
-        if device_memory <= 0:
-            raise Exception("device_memory must be bigger than 0 🔢")
         if patience is not None and type(patience) != int:
             raise Exception("patience must be int 🔢")
         if type(patience) == int:
@@ -1073,7 +1005,7 @@ class TransferLearning:
                 raise ValueError(
                     "If you want to use splited data. You must give data_path value like this: [train_path, test_path, val_path]"
                 )
-            train_path, test_path, val_path = data_path  # type: ignore
+            train_path, test_path, val_path = data_path
             if (
                 not os.path.exists(train_path)
                 or not os.path.exists(test_path)
@@ -1125,7 +1057,7 @@ class TransferLearning:
             )
 
     def _print_info(
-        best_values: dict,  # type: ignore
+        best_values: dict,
         model_name: str,
         params,
         dense_units,
@@ -1213,9 +1145,9 @@ class TransferLearning:
                         .replace("]", "")
                         .replace("'", "")
                         .replace(
-                            str(val).split(" ")[1].split(".")[-1].replace("'>", ""),  # type: ignore
+                            str(val).split(" ")[1].split(".")[-1].replace("'>", ""),
                             "["
-                            + str(val).split(" ")[1].split(".")[-1].replace("'>", "")  # type: ignore
+                            + str(val).split(" ")[1].split(".")[-1].replace("'>", "")
                             + "]",
                         )
                     )
@@ -1271,7 +1203,7 @@ class TransferLearning:
                 ("🕦 Last Accuracy: ")
                 + (
                     ("%" + str(last_acc))
-                    if last_acc >= 0  # type: ignore
+                    if last_acc >= 0
                     else "Overfitting"
                     if last_acc == -1
                     else "Error"
@@ -1300,7 +1232,7 @@ class TransferLearning:
                 print("😫 patience: " + str(patience) + "\n")
 
     def _save_unused_params(
-        params: list, save_to_path: str, model_name: str, split: bool = False  # type: ignore
+        params: list, save_to_path: str, model_name: str, split: bool = False
     ):
         n_params = []
         for p in params[0]:
@@ -1342,19 +1274,19 @@ class TransferLearning:
             ) as f:
                 f.write(str(params).replace("'", ""))
 
-    def _write_to_log_file(text, save_to_path):  # type: ignore
+    def _write_to_log_file(text, save_to_path):
         if not os.path.exists(save_to_path):
             raise FileNotFoundError(
                 f"Can't find path 🤷‍♂️\nsave_to_path: {save_to_path}"
             )
         mode = "w"
         if os.path.exists(os.path.join(save_to_path, "log.txt")):
-            text = time.strftime("[%d-%m-%Y %H:%M:%S]") + text  # type: ignore
+            text = time.strftime("[%d-%m-%Y %H:%M:%S]") + text
             mode = "a"
             text = "=" * 83 + "\n" + text
         else:
             text = (
-                BurobotOutput.print_burobot(True)  # type: ignore
+                BurobotOutput.print_burobot(True)
                 + "\nStarted:"
                 + time.strftime("[%d-%m-%Y %H:%M:%S]")
                 + "\n"
@@ -1370,18 +1302,18 @@ class TransferLearning:
                 log_file.write(text + "\n")
 
     def FindModel(
-        params,  # type: ignore
+        params,
         data_path=None,
-        save_to_path: str = None,  # type: ignore
-        model_name: str = None,  # type: ignore
-        device_memory: int = None,  # type: ignore
-        split_to_data_path: str = None,  # type: ignore
+        save_to_path: str = None,
+        model_name: str = None,
+        split_to_data_path: str = None,
         data_split_ratio: tuple = (0.7, 0.1),
         gpu: bool = True,
         patience=3,
         stop_massages: bool = True,
         use_multiprocessing: bool = False,
     ):
+        """returns:best_model, best_acc, best_values, best_history"""
         def_patience = patience
         def_params = {}
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -1389,7 +1321,7 @@ class TransferLearning:
 
         def _save_unused_params_(save_data_paths):
             if type(save_data_paths) in [tuple, list]:
-                TransferLearning._save_unused_params(  # type: ignore
+                TransferLearning._save_unused_params(
                     [
                         all_params,
                         str(skiped_models).replace("'", '"'),
@@ -1408,7 +1340,6 @@ class TransferLearning:
                         patience,
                         def_patience,
                         '"' + str(model_name) + '"',
-                        device_memory,
                         [
                             '"' + save_data_paths[0] + '"',
                             '"' + save_data_paths[1] + '"',
@@ -1421,7 +1352,7 @@ class TransferLearning:
                     model_name,
                 )
             else:
-                TransferLearning._save_unused_params(  # type: ignore
+                TransferLearning._save_unused_params(
                     [
                         all_params,
                         str(skiped_models).replace("'", '"'),
@@ -1440,7 +1371,6 @@ class TransferLearning:
                         patience,
                         def_patience,
                         '"' + str(model_name) + '"',
-                        device_memory,
                         '"' + save_data_paths + '"',
                         use_multiprocessing,
                         str(def_params).replace("'", '"'),
@@ -1450,13 +1380,12 @@ class TransferLearning:
                 )
 
         if type(params) != str:
-            TransferLearning._check_errs(  # type: ignore
+            TransferLearning._check_errs(
                 gpu,
-                device_memory,
                 split_to_data_path,
                 patience,
                 params,
-                data_path,  # type: ignore
+                data_path,
                 data_split_ratio,
                 save_to_path,
                 stop_massages,
@@ -1511,7 +1440,7 @@ class TransferLearning:
                         def_params[key] = value
 
             if stop_massages:
-                if len(params.base_models) == 1:  # type: ignore
+                if len(params.base_models) == 1:
                     patience = None
                     q = input(
                         "❓ Patiance deactivated because you only have 1 base model. Than means I can't chance model order. Are sure about using just 1 base model? N/y"
@@ -1537,34 +1466,36 @@ class TransferLearning:
                     del q
 
             else:
-                if len(params.base_models) == 1:  # type: ignore
+                if len(params.base_models) == 1:
                     patience = None
                     print(
                         "⚠️ Patiance deactivated because you only have 1 base model. Than means I can't chance model order."
-                    ),  # type: ignore
+                    ),
                     time.sleep(5)
             BurobotOutput.clear_and_memory_to()
 
             skiped_models = []
-            base_models_accs[1] = np.zeros(len(params.base_models)).tolist()  # type: ignore
-            for b in params.base_models:  # type: ignore
+            base_models_accs[1] = np.zeros(len(params.base_models)).tolist()
+            for b in params.base_models:
                 base_models_accs[0].append(str(b).split(" ")[1])
-            epochs = params.epochs  # type: ignore
+            epochs = params.epochs
+            batch_sizes = params.batch_sizes
 
             all_params = list(
                 itertools.product(
-                    params.base_models,  # type: ignore
-                    params.activation_functions,  # type: ignore
-                    params.loss_functions,  # type: ignore
-                    params.optimizers,  # type: ignore
-                    params.output_activation_functions,  # type: ignore
-                    params.dense_count,  # type: ignore
-                    params.conv_filters,  # type: ignore
-                    range(1, params.conv_layer_repeat_limit + 1),  # type: ignore
-                    params.conv_count,  # type: ignore
-                    params.dense_units,  # type: ignore
-                    params.frozen_layers,  # type: ignore
-                    params.drop_outs,  # type: ignore
+                    params.base_models,
+                    params.activation_functions,
+                    params.loss_functions,
+                    params.optimizers,
+                    params.output_activation_functions,
+                    params.batch_sizes,
+                    params.dense_count,
+                    params.conv_filters,
+                    list(range(0, params.conv_layer_repeat_limit + 1)),
+                    params.conv_count,
+                    params.dense_units,
+                    params.frozen_layers,
+                    params.drop_outs,
                 )
             )
             i = 0
@@ -1580,7 +1511,7 @@ class TransferLearning:
                         save_to_path = os.path.join(
                             save_to_path, model_name + "_train_" + str(i)
                         )
-                    TransferLearning._write_to_log_file("", save_to_path)  # type: ignore
+                    TransferLearning._write_to_log_file("", save_to_path)
                     del i
                     break
                 except FileExistsError:
@@ -1599,14 +1530,11 @@ class TransferLearning:
                     _patience,
                     def_patience,
                     model_name,
-                    _device_memory,
                     _data_path,
                     _use_multiprocessing,
                     def_params,
                 ) = eval(p.read())
                 params = TransferLearning.Params(epochs=epochs, kwargs=def_params)
-                if device_memory is None or device_memory <= 0:
-                    device_memory = _device_memory
                 if data_path is None:
                     data_path = _data_path
                 if patience == 3:
@@ -1614,7 +1542,7 @@ class TransferLearning:
                     def_patience = patience
                 if use_multiprocessing == False:
                     use_multiprocessing = _use_multiprocessing
-                del _use_multiprocessing, _patience, _data_path, _device_memory
+                del _use_multiprocessing, _patience, _data_path
 
                 if data_path is not None:
                     if type(data_path) == str:
@@ -1626,13 +1554,13 @@ class TransferLearning:
                         for pa in data_path:
                             if not os.path.exists(pa):
                                 raise FileNotFoundError(
-                                    "Cant find path(s) 🤷\ndata_path: " + data_path  # type: ignore
+                                    "Cant find path(s) 🤷\ndata_path: " + data_path
                                 )
                     else:
                         raise ValueError("data_path Value must be str, list or tuple 🔢")
 
                 TransferLearning._write_to_log_file(
-                    "Loaded un_used_params file\nContinuing training", save_to_path  # type: ignore
+                    "Loaded un_used_params file\nContinuing training", save_to_path
                 )
 
             if os.path.exists(old_best_model_path):
@@ -1653,7 +1581,7 @@ class TransferLearning:
                 best_model = None
                 best_acc = None
 
-        len_base_models = len(params.base_models)  # type: ignore
+        len_base_models = len(params.base_models)
         train_path, test_path, val_path = None, None, None
         BurobotOutput.clear_and_memory_to()
         if type(data_path) == str:
@@ -1690,7 +1618,7 @@ class TransferLearning:
                 """
                 TransferLearning._write_to_log_file(
                     "Error in the splitting data! Please check your folder tree. folder tree must be like this:\n"
-                    + file_tree,  # type: ignore
+                    + file_tree,
                     save_to_path,
                 )
                 raise Exception(
@@ -1698,7 +1626,7 @@ class TransferLearning:
                     + file_tree
                 )
         else:
-            train_path, test_path, val_path = data_path  # type: ignore
+            train_path, test_path, val_path = data_path
         BurobotOutput.clear_and_memory_to()
         all_ = len(all_params)
         last_acc = None
@@ -1741,24 +1669,9 @@ class TransferLearning:
                 time.sleep(5)
         BurobotOutput.clear_and_memory_to()
         c = 0
-        print("Loading data ⚙️")
-        print("📚 Train data:")
-        my_data_loader = BurobotImageData.ImageLoader()
-        train_data, batch_size, img_shape = my_data_loader.load_data(
-            path=train_path, return_data_only=False, device_memory=device_memory
-        )
-        print()
-        print("📝 Validation data:")
-        val_data = my_data_loader.load_data(path=val_path, device_memory=device_memory)
-        print()
-        print("🧪 Test data:")
-        test_data = my_data_loader.load_data(
-            path=test_path, device_memory=device_memory
-        )
-        save_data_paths = [train_path, test_path, val_path]
+        orj_train_path, orj_test_path, orj_val_path = train_path, test_path, val_path
+        save_data_paths = [orj_train_path, orj_test_path, orj_val_path]
 
-        if img_shape[-1] != 3:  # type: ignore
-            raise ValueError("Images must be RGB please check your data 🔢")
         last_base_model = None
         while len(all_params) != 0:
             (
@@ -1767,6 +1680,7 @@ class TransferLearning:
                 loss_function,
                 optimizer,
                 output_activation_function,
+                batch_size,
                 dense_count,
                 conv_filters,
                 conv_layer_repeat,
@@ -1778,6 +1692,32 @@ class TransferLearning:
             if last_base_model != base_model:
                 last_base_model = base_model
                 TransferLearning.conv0 = False
+            BurobotOutput.clear_and_memory_to()
+            BurobotOutput.print_burobot()
+            print("Creating usingData folder and copying data 🗂️➡️📂")
+            try:
+                BurobotOther.delete_files_in_folder(
+                    os.path.join(save_to_path, "usingData")
+                )
+            except:
+                pass
+            os.makedirs(os.path.join(save_to_path, "usingData/train"))
+            BurobotOther.copy_folder(
+                orj_train_path, os.path.join(save_to_path, "usingData/train")
+            )
+            train_path = os.path.join(save_to_path, "usingData/train")
+
+            os.makedirs(os.path.join(save_to_path, "usingData/test"))
+            BurobotOther.copy_folder(
+                orj_test_path, os.path.join(save_to_path, "usingData/test")
+            )
+            test_path = os.path.join(save_to_path, "usingData/train")
+
+            os.makedirs(os.path.join(save_to_path, "usingData/val"))
+            BurobotOther.copy_folder(
+                orj_val_path, os.path.join(save_to_path, "usingData/val")
+            )
+            val_path = os.path.join(save_to_path, "usingData/val")
             BurobotOutput.clear_and_memory_to()
             try:
                 if patience is not None:
@@ -1814,9 +1754,9 @@ class TransferLearning:
                                 "⚠️ Patience is disabled because there are no models to be tested. Running all params with ordered base models."
                             )
                             time.sleep(2)
-                        _save_unused_params_(save_data_paths)  # type: ignore
+                        _save_unused_params_(save_data_paths)
                         continue
-                TransferLearning._print_info(  # type: ignore
+                TransferLearning._print_info(
                     best_values,
                     model_name,
                     params,
@@ -1832,8 +1772,8 @@ class TransferLearning:
                     output_activation_function,
                     frozen_layer,
                     base_model,
-                    last_acc,  # type: ignore
-                    best_acc,  # type: ignore
+                    last_acc,
+                    best_acc,
                     all_,
                     c,
                     patience,
@@ -1841,15 +1781,15 @@ class TransferLearning:
                 )
                 model_exception = None
                 try:
-                    _save_unused_params_(save_data_paths)  # type: ignore
+                    _save_unused_params_(save_data_paths)
                     (
                         model,
                         checkpoint_model_path,
                         history,
-                    ) = TransferLearning.create_model(  # type: ignore
-                        train_data,  # type: ignore
-                        val_data,  # type: ignore
-                        img_shape,
+                        base_model_shape,
+                    ) = TransferLearning.create_model(
+                        train_path,
+                        val_path,
                         batch_size,
                         save_to_path,
                         model_name,
@@ -1868,13 +1808,21 @@ class TransferLearning:
                         base_model,
                         use_multiprocessing,
                     )
+                except KeyboardInterrupt:
+                    TransferLearning._write_to_log_file(
+                        "Model train stoped by User:"
+                        + "\nParams:"
+                        + str(all_params[0]),
+                        save_to_path,
+                    )
+                    model, history = None, None
                 except Exception as e:
                     model_exception = str(e)
                     TransferLearning._write_to_log_file(
                         "Model train error:\n"
                         + str(e)
                         + "\nParams:"
-                        + str(all_params[0]),  # type: ignore
+                        + str(all_params[0]),
                         save_to_path,
                     )
                     model, history = None, None
@@ -1897,33 +1845,38 @@ class TransferLearning:
                         patience -= 1
 
                     del all_params[0]
-                    _save_unused_params_(save_data_paths)  # type: ignore
+                    _save_unused_params_(save_data_paths)
                     continue
-                print("Testing Model 🥼")
+                print("🧪 Loading data Test data:")
+                DominateImage.resize_all_images(test_path, base_model_shape[1:-1])
+                test_data = BurobotImageData.ImageLoader().load_data(
+                    path=test_path, batch_size=1
+                )
+                print("\nTesting Model 🥼")
                 test_acc, predictions = test_model(
-                    model, test_data, device_memory, return_predictions=True
-                )  # type: ignore
+                    model, test_data, return_predictions=True
+                )
                 TransferLearning._write_to_log_file(
                     "Tested Model:\nAccuracy:"
-                    + (("%" + str(test_acc)) if test_acc != -1 else "Overfitting"),  # type: ignore
+                    + (("%" + str(test_acc)) if test_acc != -1 else "Overfitting"),
                     save_to_path,
                 )
-                checkpoint_model = tf.keras.models.load_model(checkpoint_model_path)  # type: ignore
-                print("Testing Checkpoint Model 🥼")
+                checkpoint_model = tf.keras.models.load_model(checkpoint_model_path)
+                print("\nTesting Checkpoint Model 🥼")
                 checkpoint_test_acc, checkpoint_predictions = test_model(
-                    checkpoint_model, test_data, device_memory, return_predictions=True
-                )  # type: ignore
+                    checkpoint_model, test_data, return_predictions=True
+                )
                 TransferLearning._write_to_log_file(
                     "Tested Checkpoint Model:\nAccuracy:"
                     + (
                         ("%" + str(checkpoint_test_acc))
                         if checkpoint_test_acc != -1
                         else "Overfitting"
-                    ),  # type: ignore
+                    ),
                     save_to_path,
                 )
-                model.save(os.path.join(save_to_path, model_name + "_last.h5"))  # type: ignore
-                checkpoint_model.save(  # type: ignore
+                model.save(os.path.join(save_to_path, model_name + "_last.h5"))
+                checkpoint_model.save(
                     os.path.join(save_to_path, model_name + "_last(checkpoint).h5")
                 )
                 my_data_loader = BurobotImageData.ImageLoader()
@@ -1943,6 +1896,9 @@ class TransferLearning:
                         .split(" ")[1]
                         .split(".")[-1]
                         .replace("'>", ""),
+                        "output_activation_function": str(
+                            output_activation_function
+                        ).split(" ")[1],
                         "frozen_layer": frozen_layer,
                         "base_model": str(base_model).split(" ")[1],
                     },
@@ -1956,7 +1912,7 @@ class TransferLearning:
                     model = checkpoint_model
                     del (
                         checkpoint_test_acc,
-                        checkpoint_model_path,  # type: ignore
+                        checkpoint_model_path,
                         checkpoint_model,
                         checkpoint_predictions,
                     )
@@ -1986,9 +1942,9 @@ class TransferLearning:
                             or key == "loss_function"
                             or key == "output_activation_function"
                         ):
-                            best_values[key] = str(eval(key)).split(" ")[1]  # type: ignore
+                            best_values[key] = str(eval(key)).split(" ")[1]
                         elif key == "optimizer":
-                            best_values[key] = (  # type: ignore
+                            best_values[key] = (
                                 str(eval(key))
                                 .split(" ")[1]
                                 .split(".")[-1]
@@ -2006,7 +1962,7 @@ class TransferLearning:
                         save_to_path,
                         my_data_loader.count_images(test_path),
                     )
-                    best_model.save(os.path.join(save_to_path, model_name + "_best.h5"))  # type: ignore
+                    best_model.save(os.path.join(save_to_path, model_name + "_best.h5"))
                 else:
                     if patience is not None:
                         patience -= 1
@@ -2014,14 +1970,14 @@ class TransferLearning:
 
                 del all_params[0]
 
-                _save_unused_params_(save_data_paths)  # type: ignore
+                _save_unused_params_(save_data_paths)
             except KeyboardInterrupt:
-                TransferLearning._write_to_log_file("User stoped", save_to_path)  # type: ignore
+                TransferLearning._write_to_log_file("User stoped", save_to_path)
                 print("\nI-i s-stopped 🙌")
                 sys.exit()
                 pass
             except Exception as e:
-                TransferLearning._write_to_log_file("Error: " + str(e), save_to_path)  # type: ignore
+                TransferLearning._write_to_log_file("Error: " + str(e), save_to_path)
                 print("Something went wrong. Skiping to next model 😵‍💫")
                 continue
 
@@ -2030,6 +1986,335 @@ class TransferLearning:
             print("I can't find best model 😥 Please check your data and parameters.")
             return None, None, None, None
         return best_model, best_acc, best_values, best_history
+
+
+#! Not finished
+class RandomLearning:
+    def __writeToLogFile(text: str, saveToPath: str):
+        if not os.path.exists(os.path.join(saveToPath, "log.txt")):
+            open(os.path.join(saveToPath, "log.txt"), "w")
+        with open(os.path.join(saveToPath, "log.txt"), "w") as logF:
+            logF.write("=" * 100 + "\n" + text + "\n" + "=" * 100)
+
+    def getRandomParams():
+        return {
+            "batch_size": random.choice([16, 32, 64]),
+            "dense_units": random.choice([128, 256, 512]),
+            "dense_count": random.choice([0, 1, 2, 3, 4]),
+            "conv_filters": random.choice([128, 256, 512]),
+            "conv_count": random.choice([0, 1, 2, 3, 4]),
+            "conv_layer_repeat_limit": random.randint(0, 5),
+            "drop_out": random.choice(
+                [
+                    0.0,
+                    0.1,
+                    0.2,
+                    0.3,
+                    0.4,
+                    0.5,
+                    0.6,
+                    0.7,
+                    0.8,
+                    0.9,
+                    1,
+                ]
+            ),
+            "activation_function": random.choice(
+                TransferLearning.Params.get_activation_functions()
+            ),
+            "loss_function": random.choice(
+                TransferLearning.Params.get_loss_functions()
+            ),
+            "optimizer": random.choice(TransferLearning.Params.get_optimizers()),
+            "output_activation_function": random.choice(
+                TransferLearning.Params.get_output_activation_functions()
+            ),
+            "frozen_layer": random.choice(
+                [
+                    0.0,
+                    0.1,
+                    0.2,
+                    0.3,
+                    0.4,
+                    0.5,
+                    0.6,
+                    0.7,
+                    0.8,
+                    0.9,
+                    1,
+                ]
+            ),
+            "base_model": random.choice(
+                [
+                    tf.keras.applications.VGG16,
+                    tf.keras.applications.VGG19,
+                    tf.keras.applications.EfficientNetB0,
+                    tf.keras.applications.EfficientNetB1,
+                    tf.keras.applications.EfficientNetB2,
+                    tf.keras.applications.EfficientNetB3,
+                    tf.keras.applications.EfficientNetB4,
+                    tf.keras.applications.EfficientNetB5,
+                    tf.keras.applications.EfficientNetB6,
+                    tf.keras.applications.EfficientNetB7,
+                    tf.keras.applications.EfficientNetV2B0,
+                    tf.keras.applications.EfficientNetV2B1,
+                    tf.keras.applications.EfficientNetV2B2,
+                    tf.keras.applications.EfficientNetV2B3,
+                    tf.keras.applications.EfficientNetV2L,
+                    tf.keras.applications.EfficientNetV2M,
+                    tf.keras.applications.EfficientNetV2S,
+                    tf.keras.applications.MobileNet,
+                    tf.keras.applications.MobileNetV2,
+                    tf.keras.applications.MobileNetV3Small,
+                    tf.keras.applications.MobileNetV3Large,
+                ]
+            ),
+            "use_multiprocessing": random.choice([True, False]),
+        }
+
+    def createModel(
+        train_data_path: str,
+        val_data_path: str,
+        save_to_path: str,
+        model_name: str,
+        epochs: int,
+    ):
+        BurobotOutput.clear_and_memory_to()
+        BurobotOutput.print_burobot()
+        print("Sit back and relax. This process will take a LONG time 😎\n")
+        print("MODEL:" + model_name + "\n")
+        randomParams = RandomLearning.getRandomParams()
+        print(
+            "Params: "
+            + str(randomParams).replace("{", "").replace("}", "").replace(",", ",\n")
+        )
+        (
+            model,
+            checkpoint_model_path,
+            history,
+            base_model_shape,
+        ) = TransferLearning.create_model(
+            train_data_path,
+            val_data_path,
+            randomParams["batch_size"],
+            save_to_path,
+            model_name,
+            randomParams["dense_units"],
+            randomParams["dense_count"],
+            randomParams["conv_filters"],
+            randomParams["conv_count"],
+            randomParams["conv_layer_repeat_limit"],
+            randomParams["drop_out"],
+            randomParams["activation_function"],
+            randomParams["loss_function"],
+            randomParams["optimizer"],
+            randomParams["output_activation_function"],
+            randomParams["frozen_layer"],
+            epochs,
+            randomParams["base_model"],
+            randomParams["use_multiprocessing"],
+        )
+        values = {}
+        try:
+            values = {
+                "dense_units": randomParams["dense_units"],
+                "dense_count": randomParams["dense_count"],
+                "drop_out": randomParams["drop_out"],
+                "activation_function": str(randomParams["activation_function"]).split(
+                    " "
+                )[1],
+                "loss_function": str(randomParams["loss_function"]).split(" ")[1],
+                "optimizer": str(randomParams["optimizer"])
+                .split(" ")[1]
+                .split(".")[-1]
+                .replace("'>", ""),
+                "output_activation_function": str(
+                    randomParams["output_activation_function"]
+                ).split(" ")[1],
+                "frozen_layer": randomParams["frozen_layer"],
+                "base_model": str(randomParams["base_model"]).split(" ")[1],
+            }
+        except:
+            return (None, None, None, None, None)
+        return (model, checkpoint_model_path, history, base_model_shape, values)
+
+    def FindModel(
+        dataPath,
+        modelName: str,
+        saveToPath: str = "",
+        epochs: int = 70,
+        gpu: bool = True,
+    ):
+        """returns: best_model, best_accuracy"""
+        BurobotOutput.clear_and_memory_to()
+        BurobotOutput.print_burobot()
+        if len(tf.config.experimental.list_physical_devices("GPU")) > 0:
+            gpus = tf.config.experimental.list_physical_devices("GPU")
+            if gpu:
+                tf.config.experimental.set_visible_devices(gpus[0], "GPU")
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+            else:
+                tf.config.set_visible_devices([], "GPU")
+        i = 0
+        if saveToPath == "":
+            saveToPath = os.getcwd()
+        while True:
+            try:
+                if i == 0:
+                    os.mkdir(os.path.join(saveToPath, modelName + "_train"))
+                    saveToPath = os.path.join(saveToPath, modelName + "_train")
+                else:
+                    os.mkdir(os.path.join(saveToPath, modelName + "_train_" + str(i)))
+                    saveToPath = os.path.join(
+                        saveToPath, modelName + "_train_" + str(i)
+                    )
+                del i
+                break
+            except FileExistsError:
+                i += 1
+                pass
+        orjTrainDataPath = ""
+        orjTestDataPath = ""
+        orjValDataPath = ""
+        if type(dataPath) == str:
+            try:
+                os.mkdir(os.path.join(saveToPath, "splitedData"))
+            except:
+                pass
+            (
+                orjTrainDataPath,
+                orjTestDataPath,
+                orjValDataPath,
+            ) = DominateImage.split_data(
+                dataPath, os.path.join(saveToPath, "splitedData")
+            )
+        elif type(dataPath) == list:
+            for d in dataPath:
+                if type(d) != str:
+                    raise ValueError("dataPath value is invalid")
+                if not os.path.exists(d):
+                    raise ValueError("dataPath value is invalid")
+            orjTrainDataPath = dataPath[0]
+            orjTestDataPath = dataPath[1]
+            orjValDataPath = dataPath[2]
+
+        else:
+            raise ValueError("dataPath value is invalid")
+        if len(tf.config.experimental.list_physical_devices("GPU")) > 0:
+            gpus = tf.config.experimental.list_physical_devices("GPU")
+            if gpu:
+                tf.config.experimental.set_visible_devices(gpus[0], "GPU")
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+            else:
+                tf.config.set_visible_devices([], "GPU")
+        model = None
+        best_model, best_accuracy = None, 0
+        while True:
+            BurobotOutput.clear_and_memory_to()
+            BurobotOutput.print_burobot()
+            print("Creating usingData folder and copying data 🗂️➡️📂")
+            try:
+                BurobotOther.delete_files_in_folder(
+                    os.path.join(saveToPath, "usingData")
+                )
+            except:
+                pass
+            os.makedirs(os.path.join(saveToPath, "usingData/train"))
+            BurobotOther.copy_folder(
+                orjTrainDataPath, os.path.join(saveToPath, "usingData/train")
+            )
+            trainDataPath = os.path.join(saveToPath, "usingData/train")
+
+            os.makedirs(os.path.join(saveToPath, "usingData/test"))
+            BurobotOther.copy_folder(
+                orjTestDataPath, os.path.join(saveToPath, "usingData/test")
+            )
+            testDataPath = os.path.join(saveToPath, "usingData/train")
+
+            os.makedirs(os.path.join(saveToPath, "usingData/val"))
+            BurobotOther.copy_folder(
+                orjValDataPath, os.path.join(saveToPath, "usingData/val")
+            )
+            valDataPath = os.path.join(saveToPath, "usingData/val")
+            BurobotOutput.clear_and_memory_to()
+            BurobotOutput.clear_and_memory_to()
+            BurobotOutput.print_burobot()
+            try:
+                (
+                    model,
+                    checkpoint_model_path,
+                    history,
+                    base_model_shape,
+                    values,
+                ) = RandomLearning.createModel(
+                    trainDataPath, valDataPath, saveToPath, modelName, epochs
+                )
+                if model is None:
+                    continue
+                print("🧪 Loading data Test data:")
+                DominateImage.resize_all_images(testDataPath, base_model_shape[1:-1])
+                test_data = BurobotImageData.ImageLoader().load_data(
+                    path=testDataPath, batch_size=1
+                )
+                print("\nTesting Model 🥼")
+                test_acc, predictions = test_model(
+                    model, test_data, return_predictions=True
+                )
+                TransferLearning._write_to_log_file(
+                    "Tested Model:\nAccuracy:"
+                    + (("%" + str(test_acc)) if test_acc != -1 else "Overfitting"),
+                    saveToPath,
+                )
+                checkpoint_model = tf.keras.models.load_model(checkpoint_model_path)
+                print("\nTesting Checkpoint Model 🥼")
+                checkpoint_test_acc, checkpoint_predictions = test_model(
+                    checkpoint_model, test_data, return_predictions=True
+                )
+                RandomLearning.__writeToLogFile(
+                    "Tested Checkpoint Model:\nAccuracy:"
+                    + (
+                        ("%" + str(checkpoint_test_acc))
+                        if checkpoint_test_acc != -1
+                        else "Overfitting"
+                    ),
+                    saveToPath,
+                )
+                model.save(os.path.join(saveToPath, modelName + "_last.h5"))
+                checkpoint_model.save(
+                    os.path.join(saveToPath, modelName + "_last(checkpoint).h5")
+                )
+                my_data_loader = BurobotImageData.ImageLoader()
+                _draw_model(
+                    history,
+                    predictions,
+                    modelName,
+                    modelName + "_last",
+                    test_acc,
+                    values,
+                    saveToPath,
+                    my_data_loader.count_images(testDataPath),
+                )
+                if test_acc > best_accuracy:
+                    best_model = model
+                elif (
+                    checkpoint_test_acc > test_acc
+                    and checkpoint_test_acc > best_accuracy
+                ):
+                    test_acc = checkpoint_test_acc
+                    best_model = checkpoint_model
+            except KeyboardInterrupt:
+                q = input("Stop training y/N?")
+                q = q.lower()
+                if q != "y":
+                    pass
+                else:
+                    break
+            except:
+                pass
+
+        return best_model, best_accuracy
 
 
 # BUROBOT
