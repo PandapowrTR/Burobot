@@ -9,6 +9,33 @@
 Burobot is a powerful Python library for developing and testing deep learning models. It helps you find the Best Artifical intelegent models.
 
 # Image Classification Model Finder 
+# Image Classification Model Finder Random 👽🆕
+With the new random learning, you can train your model with random parameters!
+First, let's import the necessary libraries.
+```py
+from Burobot.Training.ImageClassification import RandomLearning
+```
+Then let's prepare the necessary values
+```py
+data_path = "data"
+save_to_path = "save_to_path"
+model_name = "name"
+epochs = 100#optional
+```
+The values you specify here are:
+- data_path: Train, test and validation data in a list or data path in string form.
+- save_to_path: The place where the model, if the data is to be divided, the divided data, the data to be used and successful models file will be saved.
+- model_name: Name of the model to be trained (example: 'CatOrDog').
+- epochs: How many epochs the model will be trained in. Optional, default value is 70.
+
+Then let's start training our model
+```py
+best_model, best_acc = RandomLearning.FindModel(
+    data_path, model_name, saveToPath=save_to_path, epochs=epochs
+)
+```
+And that's it! Your model needs to start training.
+
 # Image Classification Model Finder NEW MODEL 👨
 
 First, let's import the necessary libraries
