@@ -341,8 +341,6 @@ def resize_all_images(path: str, size: tuple):
         path (str): The path to the directory containing the images.
         size (tuple): The target size in the format (width, height).
     """
-    BurobotOutput.clear_and_memory_to()
-    BurobotOutput.print_burobot()
     print("Resizing all images 🖼️")
     if not os.path.exists(path):
         FileNotFoundError("Can't find path 🤷\npath:" + str(path))
