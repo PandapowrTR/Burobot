@@ -31,7 +31,7 @@ class ImageLoader:
                     count += 1
         return count
 
-    def load_data(self, path, device_memory: int, return_data_only: bool = True):
+    def load_data(self, path, batch_size: int, return_data_only: bool = True):
         """
         Load data from a specified path.
 
@@ -47,11 +47,6 @@ class ImageLoader:
             raise FileNotFoundError("Can't find path 🤷\npath: " + str(path))
         import math
         from PIL import Image
-
-        device_memory = device_memory * 0.65  # type: ignore
-        data_size = self.count_images(path)
-        max_batch_size = int(math.ceil(data_size / 32))
-        del data_size
         img_shape = None
         s = False
         for root, _, files in os.walk(path):
@@ -68,16 +63,7 @@ class ImageLoader:
                     s = True
                     break
         print("🖼️ Image shape:" + str(img_shape))
-        batch_size = int(
-            math.floor(
-                (device_memory * 1024 * 1024)
-                / (img_shape[0] * img_shape[1] * img_shape[2] * 8)  # type: ignore
-            )
-        )
         batch_size = max(batch_size, 1)
-        if batch_size > max_batch_size:
-            batch_size = max_batch_size
-        del s, max_batch_size
         data = tf.keras.preprocessing.image_dataset_from_directory(
             path,
             labels="inferred",
@@ -90,7 +76,7 @@ class ImageLoader:
         gc.collect()
         tf.keras.backend.clear_session()
         if not return_data_only:
-            return data, batch_size, img_shape
+            return data, img_shape
         else:
             return data
 
