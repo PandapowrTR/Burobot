@@ -1230,6 +1230,7 @@ class TransferLearning:
                     print("😫 patience: " + str(patience) + "\n")
             else:
                 print("😫 patience: " + str(patience) + "\n")
+        print()
 
     def _save_unused_params(
         params: list, save_to_path: str, model_name: str, split: bool = False
@@ -1711,7 +1712,7 @@ class TransferLearning:
             BurobotOther.copy_folder(
                 orj_test_path, os.path.join(save_to_path, "usingData/test")
             )
-            test_path = os.path.join(save_to_path, "usingData/train")
+            test_path = os.path.join(save_to_path, "usingData/test")
 
             os.makedirs(os.path.join(save_to_path, "usingData/val"))
             BurobotOther.copy_folder(
@@ -1844,7 +1845,6 @@ class TransferLearning:
                     ):
                         patience -= 1
 
-                    del all_params[0]
                     _save_unused_params_(save_data_paths)
                     continue
                 print("🧪 Loading data Test data:")
@@ -1968,17 +1968,16 @@ class TransferLearning:
                         patience -= 1
                 c += 1
 
-                del all_params[0]
-
                 _save_unused_params_(save_data_paths)
             except KeyboardInterrupt:
                 TransferLearning._write_to_log_file("User stoped", save_to_path)
                 print("\nI-i s-stopped 🙌")
                 sys.exit()
-                pass
             except Exception as e:
                 TransferLearning._write_to_log_file("Error: " + str(e), save_to_path)
                 print("Something went wrong. Skiping to next model 😵‍💫")
+            finally:
+                del all_params[0]
                 continue
 
         if best_model is None:
