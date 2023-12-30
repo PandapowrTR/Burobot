@@ -854,15 +854,9 @@ class TransferLearning:
             input_shape=base_model_shape[1:],
             input_tensor=input_tensor,
         )
-        model = tf.keras.models.Sequential()
-        for layer in cur_model.layers[: int(len(cur_model.layers) * frozen_layer)]:
-            layer.trainable = False
-        for layer in cur_model.layers:
-            try:
-                model.add(layer)
-            except:
-                pass
-        x = cur_model.input
+        for li in range(len(cur_model.layers[: int(len(cur_model.layers) * frozen_layer)])):
+            cur_model.layers[li].trainable = False
+        x = cur_model.output
         for i in range(1, conv_count + 1):
             b = False
             filters = conv_filters if i % 2 != 0 else int(conv_filters / 2)
@@ -875,19 +869,18 @@ class TransferLearning:
             if b:
                 break
             x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding="same")(x)
-        y = cur_model.output
 
         for i in range(1, dense_count + 1):
             dense_units = dense_units if i % 2 != 0 else int(dense_units / 2)
-            y = tf.keras.layers.Dropout(drop_out)(y)
-            y = tf.keras.layers.Dense(
+            x = tf.keras.layers.Dropout(drop_out)(x)
+            x = tf.keras.layers.Dense(
                 units=dense_units, activation=activation_function
-            )(y)
+            )(x)
 
-        y = tf.keras.layers.Dense(
+        x = tf.keras.layers.Dense(
             units=len(train_data.class_names), activation=output_activation_function
-        )(y)
-        model = tf.keras.models.Model(inputs=x, outputs=y)
+        )(x)
+        model = tf.keras.models.Model(inputs=cur_model.input, outputs=x)
 
         model.compile(optimizer=optimizer(), loss=loss_function, metrics=["accuracy"])
 
