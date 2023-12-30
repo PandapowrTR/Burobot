@@ -879,7 +879,7 @@ class TransferLearning:
             if b:
                 break
             x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding="same")(x)
-        if type(x[-1]) != type(tf.keras.layers.Flatten):
+        if all([type(x) != type(tf.keras.layers.Flatten) for x in x ]) :
             x = tf.keras.layers.Flatten()(x)
 
         #! if dense_count is 0 there is no reasion to be change the dense_units value | NOT FINISHED
