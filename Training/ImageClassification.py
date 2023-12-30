@@ -862,11 +862,7 @@ class TransferLearning:
                 model.add(layer)
             except:
                 pass
-        x = cur_model.output
-        # x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding="same")(x)
-        #! if conv_count is 0 there is no reasion to be change the conv_filters value | NOT FINISHED
-        # if (conv_filters > 0 and conv_count == 0):
-        #     raise Exception("Model is unnecessary 🚮")
+        x = cur_model.input
         for i in range(1, conv_count + 1):
             b = False
             filters = conv_filters if i % 2 != 0 else int(conv_filters / 2)
@@ -879,23 +875,19 @@ class TransferLearning:
             if b:
                 break
             x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding="same")(x)
-        if all([type(x) != type(tf.keras.layers.Flatten) for x in x ]) :
-            x = tf.keras.layers.Flatten()(x)
+        y = cur_model.output
 
-        #! if dense_count is 0 there is no reasion to be change the dense_units value | NOT FINISHED
-        # if (dense_units > 0 and dense_count == 0):
-        #     raise Exception("Model is unnecessary 🚮")
         for i in range(1, dense_count + 1):
             dense_units = dense_units if i % 2 != 0 else int(dense_units / 2)
-            x = tf.keras.layers.Dropout(drop_out)(x)
-            x = tf.keras.layers.Dense(
+            y = tf.keras.layers.Dropout(drop_out)(y)
+            y = tf.keras.layers.Dense(
                 units=dense_units, activation=activation_function
-            )(x)
+            )(y)
 
-        predictions = tf.keras.layers.Dense(
+        y = tf.keras.layers.Dense(
             units=len(train_data.class_names), activation=output_activation_function
-        )(x)
-        model = tf.keras.models.Model(inputs=cur_model.input, outputs=predictions)
+        )(y)
+        model = tf.keras.models.Model(inputs=x, outputs=y)
 
         model.compile(optimizer=optimizer(), loss=loss_function, metrics=["accuracy"])
 
