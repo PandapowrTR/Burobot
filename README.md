@@ -60,7 +60,8 @@ params = TL.Params(
     output_activation_functions=TL.Params.get_output_activation_functions()[1:3],
     frozen_layers=[0.2, 0.5, 0.9],
     base_models=[tf.keras.applications.MobileNet, tf.keras.applications.MobileNetV2],
-    epochs=60
+    epochs=60,
+    batch_sizes=[32],
 )
 ```
 This code defines the following parameters:
@@ -78,6 +79,7 @@ This code defines the following parameters:
 - frozen_layers: Layers to be frozen.
 - base_models: Base models to be used for transfer learning.
 - epochs: Number of epochs.
+- batch_sizes: Number of batch sizes.
   
 Next, let's define the save_to_path and data_path variables:
 ```py
@@ -94,7 +96,6 @@ best_model, best_acc, best_values, best_history = TL.FindModel(
     params = params,
     use_multiprocessing=True
     ,data_path=data_path,
-    device_memory=6,
     model_name="Model",
     patience=3,
     save_to_path=save_to_path,
@@ -109,7 +110,6 @@ This code defines the following parameters:
 - params:The params object or file
 - use_multiprocessing:Option to use multiprocessing for tensorflow. Default is False
 - data_path:Model dataset path
-- device_memory:gpu/cpu memory (GB)
 - model_name:To be trained model name
 - patience:Number of rights to be granted for each base model. If a model fails, is less successful than the most successful model, and overfits, the patience value is reduced by 1. If the patience value is 0, that base model is skipped
 - save_to_path:Path to Train folder be saved
@@ -157,16 +157,6 @@ TL.Params.dominate_params_file("/path/to/params/file.txt", "/path/to/Train/Folde
 TL.Params.dominate_params_file("/path/to/params/file.txt", "/path/to/Train/Folder/path").update_device_memory(1)
 TL.Params.dominate_params_file("/path/to/params/file.txt", "/path/to/OldTrain/Folder/path").update_train_folder_path("path/to/new/train/path")
 ```
-
-You can dominate values with this way to
-```py
-best_model, best_acc, best_values, best_history = TL.FindModel(
-    params = params,
-    use_multiprocessing=True
-    device_memory=1,
-)
-```
-In this code device_memory updated to 1
 
 # Natural Language Processing 
 First import Burobot Best NLP Model Finder
