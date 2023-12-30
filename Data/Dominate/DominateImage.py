@@ -542,7 +542,7 @@ class ImageAugmentation:
 
         if type(aug_rate[1]) != int:
             raise ValueError(
-                "Your aug_rate value is not valid. Please use aug_rate.(aug_max, aug_mid, aug_low) or for custom use (albumentations.Compose([params...]), aug_rate_count:int)"
+                "Your aug_rate value is not valid. Please use [aug_rate.(aug_max, aug_mid, aug_low)[0], aug_rate.(aug_max, aug_mid, aug_low)[1]] or for custom use (albumentations.Compose([params...]), aug_rate_count:int)"
             )
         folder_true = os.path.isdir(os.path.join(data_path, os.listdir(data_path)[0]))
         if folder_true:
