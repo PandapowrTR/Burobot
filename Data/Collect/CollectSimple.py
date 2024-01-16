@@ -6,95 +6,95 @@ sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Bur
 from Burobot.tools import BurobotOutput
 
 
-def _collect_err(path: str, save_type):
+def _catchErr(path: str, saveType):
     if not os.path.exists(path):
         raise FileNotFoundError("Can't find path 🤷\n path: " + path)
-    if type(save_type) == list or type(save_type) == str:
+    if type(saveType) == list or type(saveType) == str:
 
         def check():
-            if type(save_type) == list:
-                for t in save_type:
+            if type(saveType) == list:
+                for t in saveType:
                     if t in ["csv", "excel", "json"]:
                         return
                 raise ValueError(
-                    "The 'save_type' value doesn't include these values: ['csv', 'excel', 'json']🔢"
+                    "The 'saveType' value doesn't include these values: ['csv', 'excel', 'json']🔢"
                 )
 
         check()
-        if type(save_type) == str:
-            if save_type not in ["csv", "excel", "json"]:
+        if type(saveType) == str:
+            if saveType not in ["csv", "excel", "json"]:
                 raise ValueError(
-                    "The 'save_type' value doesn't include these values: ['csv', 'excel', 'json']🔢"
+                    "The 'saveType' value doesn't include these values: ['csv', 'excel', 'json']🔢"
                 )
 
 
-def collect(path, save_type):
-    _collect_err(path, save_type)
-    BurobotOutput.clear_and_memory_to()
-    BurobotOutput.print_burobot()
+def collect(path, saveType):
+    _catchErr(path, saveType)
+    BurobotOutput.clearAndMemoryTo()
+    BurobotOutput.printBurobot()
     data = None
     if os.path.isfile(path):
-        file_extension = os.path.splitext(path)[-1].lower()
-        if file_extension == ".xlsx":
-            existing_data_frame = pd.read_excel(path)
-            data = existing_data_frame
-        elif file_extension == ".csv":
-            existing_data_frame = pd.read_csv(path)
-            data = existing_data_frame
-        elif file_extension == ".json":
-            existing_data_frame = pd.read_json(path)
-            data = existing_data_frame
+        fileExtension = os.path.splitext(path)[-1].lower()
+        if fileExtension == ".xlsx":
+            existingDataFrame = pd.read_excel(path)
+            data = existingDataFrame
+        elif fileExtension == ".csv":
+            existingDataFrame = pd.read_csv(path)
+            data = existingDataFrame
+        elif fileExtension == ".json":
+            existingDataFrame = pd.read_json(path)
+            data = existingDataFrame
         else:
             raise ValueError(
                 "The file type doesn't include these values: ['csv', 'excel', 'json']🔢"
             )
-        existing_samples = existing_data_frame.shape[0]
+        existingSamples = existingDataFrame.shape[0]
         print(f"Continuing from existing data at {path}.")
         time.sleep(3)
         path = os.path.split(path)[0]
     else:
-        data = pd.DataFrame(columns=feature_columns)#type: ignore
-        existing_data_frame = None
-        existing_samples = 0
+        data = pd.DataFrame(columns=featureColumns)  # type: ignore
+        existingDataFrame = None
+        existingSamples = 0
         print(f"Starting fresh at {path}.")
         time.sleep(3)
 
-    BurobotOutput.clear_and_memory_to()
-    BurobotOutput.print_burobot()
-    feature_columns = []
+    BurobotOutput.clearAndMemoryTo()
+    BurobotOutput.printBurobot()
+    featureColumns = []
     time.sleep(3)
-    if existing_data_frame is not None:
-        feature_columns = existing_data_frame.columns.tolist()
+    if existingDataFrame is not None:
+        featureColumns = existingDataFrame.columns.tolist()
     else:
-        num_features = int(input("How many columns will there be? 🧾 "))
-        feature_columns = []
-        for i in range(num_features):
-            column_name = input(f"Name of column {i+1}: 📝 ")
-            feature_columns.append(column_name)
+        numFeatures = int(input("How many columns will there be? 🧾 "))
+        featureColumns = []
+        for i in range(numFeatures):
+            columnName = input(f"Name of column {i+1}: 📝 ")
+            featureColumns.append(columnName)
 
-    num_samples = existing_samples
+    numSamples = existingSamples
 
     while True:
-        BurobotOutput.clear_and_memory_to()
-        BurobotOutput.print_burobot()
-        num_samples += 1
-        print(f"\nSample {num_samples} Input:")
-        new_row = {}
-        for col in feature_columns:
+        BurobotOutput.clearAndMemoryTo()
+        BurobotOutput.printBurobot()
+        numSamples += 1
+        print(f"\nSample {numSamples} Input:")
+        newRow = {}
+        for col in featureColumns:
             value = input(f"Value for {col}: ")
-            new_row[col] = value
+            newRow[col] = value
 
-        data = pd.concat([data, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+        data = pd.concat([data, pd.DataFrame(newRow, index=[0])], ignore_index=True)
 
-        if type(save_type) == str:
-            if save_type == "excel":
+        if type(saveType) == str:
+            if saveType == "excel":
                 data.to_excel(os.path.join(path, f"data.xlsx"), index=False)
-            elif save_type == "csv":
+            elif saveType == "csv":
                 data.to_csv(os.path.join(path, f"data.csv"), index=False)
-            elif save_type == "json":
+            elif saveType == "json":
                 data.to_json(os.path.join(path, f"data.json"), index=False)
         else:  # list
-            for t in save_type:
+            for t in saveType:
                 if t == "excel":
                     data.to_excel(os.path.join(path, f"data.xlsx"), index=False)
                 elif t == "csv":

@@ -31,7 +31,7 @@ def collect_from_webcam(
     i: int = 0,
 ):
     # Clear the outputs
-    BurobotOutput.clear_and_memory_to()
+    BurobotOutput.clearAndMemoryTo()
     # Check input errors
     _check_errs(save_to_path, output_resolution, delay, i)
     # Create a 'cv2.VideoCapture' object to capture video from the webcam
@@ -88,7 +88,7 @@ def collect_from_webcam(
 def collect_from_screen(
     save_to_path: str, output_resolution: tuple, delay: float = 0.1, i: int = 0
 ):
-    BurobotOutput.clear_and_memory_to()
+    BurobotOutput.clearAndMemoryTo()
     _check_errs(save_to_path, output_resolution, delay, i)
     from PIL import ImageDraw, ImageGrab
     import pyautogui
@@ -113,7 +113,7 @@ def collect_from_screen(
     screen.show()
     del screen, draw
     collect = False
-    BurobotOutput.clear_and_memory_to()
+    BurobotOutput.clearAndMemoryTo()
     while True:
         if keyboard.is_pressed("c"):
             collect = not collect
@@ -131,7 +131,7 @@ def collect_from_screen(
                 del temp_x
             img = img.crop((x[0], x[1], y[0], y[1]))#type: ignore
             img = img.resize(output_resolution)#type: ignore
-            BurobotOutput.clear_and_memory_to()
+            BurobotOutput.clearAndMemoryTo()
             try:
                 img.save(os.path.join(save_to_path, str(i) + ".jpg"))
                 print(str(i) + ".jpg saved!")
