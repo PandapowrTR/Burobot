@@ -1,6 +1,5 @@
 # BUROBOT
 import os, sys, itertools, json, copy, typing, importlib, datetime
-import tensorflow as tf
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 from Burobot.tools import BurobotOutput
@@ -741,7 +740,7 @@ class GridSearchTrain:
             )
             if checkpointModelPath is not None:
                 try:
-                    checkpointModel = tf.keras.models.load_model(checkpointModelPath)
+                    checkpointModel = loadDatamethod(checkpointModel)
                     modelTestmethodValues.update({"model": checkpointModel})
                     checkpointAccuracy = modelTestmethod(modelTestmethodValues)
                     GridSearchTrain.__writeLog(
