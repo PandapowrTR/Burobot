@@ -1,2 +1,1 @@
-
-README COMMING SOON
+README File is currently under development
