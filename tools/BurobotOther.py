@@ -90,6 +90,10 @@ def convertModelFunctionToString(mFunction):
             mFunction, type
         ):
             return "tf.keras.losses" + mFunction.__name__
+        elif moduleName.startswith("tensorflow.keras.activations") and isinstance(
+            mFunction, type
+        ):
+            return "tf.keras.activations" + mFunction.__name__
         return None
     except:
         return None
