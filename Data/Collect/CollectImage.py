@@ -173,6 +173,7 @@ def collectFromVideo(videoPath: str, saveToPath: str, i: int = 0, printInfo:bool
             if not ret or frame is None:
                 print("Video ended or could not read.")
                 break
+            orjFrame = frame.copy()
             frame = cv2.resize(frame, (int(screenWidth*0.3), int(screenHeight*0.3)))
 
             # Save the frame when 'c' is pressed
@@ -181,7 +182,7 @@ def collectFromVideo(videoPath: str, saveToPath: str, i: int = 0, printInfo:bool
                 save = not save
             if key == ord("c") or save:
                 framePath = f"{saveToPath}/frame_{i}.png"
-                cv2.imwrite(framePath, frame)
+                cv2.imwrite(framePath, orjFrame)
                 print(f"Frame saved: {framePath}")
                 i += 1
             # Exit when 'q' is pressed
