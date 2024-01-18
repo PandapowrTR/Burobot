@@ -403,12 +403,24 @@ class GridSearchTrain:
 
         values = {
             "modelTrainValues": GridSearchTrain.__cleanDictForJson(modelTrainValues),
-            "modelSaveMethodValues": GridSearchTrain.__cleanDictForJson(modelSaveMethodValues),
-            "modelLoadMethodValues": GridSearchTrain.__cleanDictForJson(modelLoadMethodValues),
-            "hardwareSetupmethodValues": GridSearchTrain.__cleanDictForJson(hardwareSetupmethodValues),
-            "loadDatamethodValues": GridSearchTrain.__cleanDictForJson(loadDatamethodValues),
-            "splitDatamethodValues": GridSearchTrain.__cleanDictForJson(splitDatamethodValues),
-            "modelTestmethodValues": GridSearchTrain.__cleanDictForJson(modelTestmethodValues),
+            "modelSaveMethodValues": GridSearchTrain.__cleanDictForJson(
+                modelSaveMethodValues
+            ),
+            "modelLoadMethodValues": GridSearchTrain.__cleanDictForJson(
+                modelLoadMethodValues
+            ),
+            "hardwareSetupmethodValues": GridSearchTrain.__cleanDictForJson(
+                hardwareSetupmethodValues
+            ),
+            "loadDatamethodValues": GridSearchTrain.__cleanDictForJson(
+                loadDatamethodValues
+            ),
+            "splitDatamethodValues": GridSearchTrain.__cleanDictForJson(
+                splitDatamethodValues
+            ),
+            "modelTestmethodValues": GridSearchTrain.__cleanDictForJson(
+                modelTestmethodValues
+            ),
         }
         for key, value in values.copy().items():
             try:
@@ -641,19 +653,19 @@ class GridSearchTrain:
             # save last params
             GridSearchTrain.__saveParams(
                 modelTrainmethod,
-                modelTrainValues,
+                modelTrainValues.copy(),
                 modelSaveMethod,
-                modelSaveMethodValues,
+                modelSaveMethodValues.copy(),
                 modelLoadMethod,
-                modelLoadMethodValues,
+                modelLoadMethodValues.copy(),
                 hardwareSetupmethod,
-                hardwareSetupmethodValues,
+                hardwareSetupmethodValues.copy(),
                 loadDatamethod,
-                loadDatamethodValues,
+                loadDatamethodValues.copy(),
                 splitDatamethod,
-                splitDatamethodValues,
+                splitDatamethodValues.copy(),
                 modelTestmethod,
-                modelTestmethodValues,
+                modelTestmethodValues.copy(),
                 copy.deepcopy(paramsIter),
                 copy.deepcopy(usedParams),
                 copy.deepcopy(data),
@@ -705,7 +717,10 @@ class GridSearchTrain:
                     modelTrainValues,
                 )
                 modelSaveMethodValues.update(
-                    {"saveToPath": os.path.join(currentSaveFolder, "lastModel.h5")}
+                    {
+                        "saveToPath": os.path.join(currentSaveFolder, "lastModel.h5"),
+                        "model": trainedModel,
+                    }
                 )
                 modelSaveMethod(modelSaveMethodValues)
                 modelTestmethodValues.update({"model": trainedModel})
@@ -714,19 +729,19 @@ class GridSearchTrain:
                 # save usedParams
                 GridSearchTrain.__saveParams(
                     modelTrainmethod,
-                    modelTrainValues,
+                    modelTrainValues.copy(),
                     modelSaveMethod,
-                    modelSaveMethodValues,
+                    modelSaveMethodValues.copy(),
                     modelLoadMethod,
-                    modelLoadMethodValues,
+                    modelLoadMethodValues.copy(),
                     hardwareSetupmethod,
-                    hardwareSetupmethodValues,
+                    hardwareSetupmethodValues.copy(),
                     loadDatamethod,
-                    loadDatamethodValues,
+                    loadDatamethodValues.copy(),
                     splitDatamethod,
-                    splitDatamethodValues,
+                    splitDatamethodValues.copy(),
                     modelTestmethod,
-                    modelTestmethodValues,
+                    modelTestmethodValues.copy(),
                     copy.deepcopy(paramsIter),
                     copy.deepcopy(usedParams),
                     copy.deepcopy(data),
@@ -781,7 +796,10 @@ class GridSearchTrain:
                     "log.log",
                 )
                 modelSaveMethodValues.update(
-                    {"saveToPath": os.path.join(saveToPath, "bestModel.h5")}
+                    {
+                        "saveToPath": os.path.join(saveToPath, "bestModel.h5"),
+                        "model": bestModel,
+                    }
                 )
                 modelSaveMethod(modelSaveMethodValues)
             BurobotOther.zipFolder(
@@ -797,19 +815,19 @@ class GridSearchTrain:
             # save usedParams
             GridSearchTrain.__saveParams(
                 modelTrainmethod,
-                modelTrainValues,
+                modelTrainValues.copy(),
                 modelSaveMethod,
-                modelSaveMethodValues,
+                modelSaveMethodValues.copy(),
                 modelLoadMethod,
-                modelLoadMethodValues,
+                modelLoadMethodValues.copy(),
                 hardwareSetupmethod,
-                hardwareSetupmethodValues,
+                hardwareSetupmethodValues.copy(),
                 loadDatamethod,
-                loadDatamethodValues,
+                loadDatamethodValues.copy(),
                 splitDatamethod,
-                splitDatamethodValues,
+                splitDatamethodValues.copy(),
                 modelTestmethod,
-                modelTestmethodValues,
+                modelTestmethodValues.copy(),
                 copy.deepcopy(paramsIter),
                 copy.deepcopy(usedParams),
                 copy.deepcopy(data),
