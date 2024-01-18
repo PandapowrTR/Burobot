@@ -170,10 +170,10 @@ def collectFromVideo(videoPath: str, saveToPath: str, i: int = 0, printInfo:bool
         try:
             # Read a frame
             ret, frame = cap.read()
-            frame = cv2.resize(frame, (int(screenWidth*0.3), int(screenHeight*0.3)))
-            if not ret:
+            if not ret or frame is None:
                 print("Video ended or could not read.")
                 break
+            frame = cv2.resize(frame, (int(screenWidth*0.3), int(screenHeight*0.3)))
 
             # Save the frame when 'c' is pressed
             key = cv2.waitKey(30) & 0xFF
