@@ -348,6 +348,18 @@ class ModelSchemes:
 
 class GridSearchTrain:
     @staticmethod
+    def __cleanDictForJson(d):
+        cleanedDict = {}
+        for key, value in d.items():
+            try:
+                json.dumps({key: value})
+                cleanedDict[key] = value
+            except:
+                pass
+
+        return cleanedDict
+
+    @staticmethod
     def __saveParams(
         modelTrainmethod,
         modelTrainValues,
@@ -388,16 +400,15 @@ class GridSearchTrain:
             "bestHistory": bestHistory,
             "loopIndex": loopIndex,
         }
-        if "testData" in list(modelTestmethodValues.keys()):
-            del modelTestmethodValues["testData"]
+
         values = {
-            "modelTrainValues": modelTrainValues,
-            "modelSaveMethodValues": modelSaveMethodValues,
-            "modelLoadMethodValues": modelLoadMethodValues,
-            "hardwareSetupmethodValues": hardwareSetupmethodValues,
-            "loadDatamethodValues": loadDatamethodValues,
-            "splitDatamethodValues": splitDatamethodValues,
-            "modelTestmethodValues": modelTestmethodValues,
+            "modelTrainValues": GridSearchTrain.__cleanDictForJson(modelTrainValues),
+            "modelSaveMethodValues": GridSearchTrain.__cleanDictForJson(modelSaveMethodValues),
+            "modelLoadMethodValues": GridSearchTrain.__cleanDictForJson(modelLoadMethodValues),
+            "hardwareSetupmethodValues": GridSearchTrain.__cleanDictForJson(hardwareSetupmethodValues),
+            "loadDatamethodValues": GridSearchTrain.__cleanDictForJson(loadDatamethodValues),
+            "splitDatamethodValues": GridSearchTrain.__cleanDictForJson(splitDatamethodValues),
+            "modelTestmethodValues": GridSearchTrain.__cleanDictForJson(modelTestmethodValues),
         }
         for key, value in values.copy().items():
             try:
