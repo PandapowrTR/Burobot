@@ -199,8 +199,7 @@ def collectFromVideo(videoPath: str, saveToPath: str, i: int = 0, printInfo:bool
                 )
             cv2.imshow("Video", frame)
         except:
-            cv2.imshow("Video", blackImage)
-            pass
+            break
 
     # Release the video capture and close the window
     cap.release()
