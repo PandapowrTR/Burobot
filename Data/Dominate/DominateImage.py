@@ -30,7 +30,7 @@ def splitData(
         pass
     if not os.path.exists(saveToPath) or not os.path.exists(sourcePath):
         raise Exception(
-            "Can't find path 🤷\ndata_path:"
+            "Can't find path 🤷\ndataPath:"
             + str(saveToPath)
             + "\nsource_path:"
             + str(sourcePath)
@@ -532,7 +532,7 @@ class ImageAugmentation:
             ],
             5,
         ]
-
+    @staticmethod
     def _augDataErr(dataPath: str, saveToPath: str, augRate):  # type: ignore
         import albumentations as alb
 
@@ -582,11 +582,11 @@ class ImageAugmentation:
             )
 
         gc.collect()
-
+    @staticmethod
     def augmentateData(
         dataPath: str,  # type: ignore
         augRate: list,
-        saveToPath,
+        saveToPath:str,
         equlizeImgCount: bool = True,
         similarity: float = 0.9,
     ):
@@ -625,7 +625,7 @@ class ImageAugmentation:
                 progressCallback(classFolder, int(progressPercent))
 
         BurobotOutput.clearAndMemoryTo()
-        ImageAugmentation._augDataErr(data_path, saveToPath, augRate)  # type: ignore
+        ImageAugmentation._augDataErr(dataPath, saveToPath, augRate)  # type: ignore
 
         BurobotOutput.printBurobot()
 
