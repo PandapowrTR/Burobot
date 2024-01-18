@@ -1,5 +1,6 @@
 # BUROBOT
 import time, os, cv2, keyboard, sys, pyautogui
+import numpy as np
 
 # Import the necessary modules and packages
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
@@ -163,7 +164,7 @@ def collectFromVideo(videoPath: str, saveToPath: str, i: int = 0, printInfo:bool
         return
 
 
-
+    blackImage = np.zeros((int(screenWidth*0.3), int(screenHeight*0.3), 3), dtype=np.uint8)
     save = False
     while True:
         try:
@@ -191,15 +192,15 @@ def collectFromVideo(videoPath: str, saveToPath: str, i: int = 0, printInfo:bool
             if printInfo:
                 infoMessage = "Press 'c' to save. Press 'v' to toggle continuous saving. Press 'q' to exit."
                 frame = cv2.putText(
-                    frame, infoMessage, (int(screenWidth*0.3*0.2), int(screenHeight*0.3*0.8)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2
+                    frame, infoMessage, (int(screenWidth*0.3*0.05), int(screenHeight*0.3*0.8)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2
                 )
                 frame = cv2.putText(
                     frame, "Continuous saving: "+str("YES" if save else "NO"), (int(screenWidth*0.3*0.05), int(screenHeight*0.3*0.05)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2
                 )
+            cv2.imshow("Video", frame)
         except:
-            frame = [[0,0,0]]
+            cv2.imshow("Video", blackImage)
             pass
-        cv2.imshow("Video", frame)
 
     # Release the video capture and close the window
     cap.release()
