@@ -971,14 +971,14 @@ class GridSearchTrain:
         # Creating all params value. all params value contains all possibilities.
         paramsIter = ModelSchemes.generateIterFromParamDict(params)
         usedParams = []
-        for i, param in enumerate(paramsIter):
+        for loopIndex, param in enumerate(paramsIter):
             (
                 bestModel,
                 bestAccuracy,
                 bestHistory,
                 usedParams,
             ) = GridSearchTrain.__gridLoop(
-                i,
+                loopIndex,
                 param,
                 paramsIter,
                 data,
@@ -1007,6 +1007,7 @@ class GridSearchTrain:
                 splitDatamethod,
                 splitDatamethodValues,
             )
+            paramsIter.remove(param)
         return bestModel, bestAccuracy, bestHistory
 
     @staticmethod
@@ -1093,4 +1094,5 @@ class GridSearchTrain:
                 splitDatamethodValues,
             )
             loopIndex += 1
+            paramsIter.remove(param)
         return bestModel, bestAccuracy, bestHistory, usedParams
