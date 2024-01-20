@@ -766,7 +766,8 @@ class GridSearchTrain:
             )
             if checkpointModelPath is not None:
                 try:
-                    checkpointModel = modelLoadMethod(checkpointModelPath)
+                    modelLoadMethodValues.update({"modelPath":checkpointModelPath})
+                    checkpointModel = modelLoadMethod(modelLoadMethodValues)
                     modelTestmethodValues.update({"model": checkpointModel})
                     checkpointAccuracy = modelTestmethod(modelTestmethodValues)
                     GridSearchTrain.__writeLog(
