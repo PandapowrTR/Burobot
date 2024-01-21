@@ -863,7 +863,6 @@ class GridSearchTrain:
                 )
                 modelSaveMethod(modelSaveMethodValues)
                 modelTestmethodValues.update({"model": trainedModel})
-                del trainedModel
             except Exception as e:
                 usedParams.append(param)
                 # save usedParams
