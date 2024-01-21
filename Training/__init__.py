@@ -44,7 +44,7 @@ class ModelSchemes:
                 _values: dict,
             ):
                 """
-                :param (dict): Values to be used in training this model. It must be one of the variables in the variable converted to refresh of the ModelSchemes.ImageClassification.Scheme1.params dictionary.
+                :param (dict): This variable represents the data to be used in the training of the model. It should be a dictionary obtained from the ModelSchemes.ImageClassification.Scheme1.params dictionary.
                 :_values (dict): The following variables must be included in this variable: staticValues(static values to be used in model training (e.g. ModelSchemes.ImageClassification.Scheme1().staticValues)), trainData(training data to be used in model slope (such as Model.Schemes.ImageClassification.Scheme().loadData) must be loaded)), valData(validation data to be used in the model slope (must be loaded like Model.Schemes.ImageClassification.Scheme().loadData))
                 """
                 import tensorflow as tf
@@ -168,7 +168,7 @@ class ModelSchemes:
                 """
                 :_values (dict): There are no mandatory variables in this variable. However, this variable must be in the method. The following values will be automatically populated during Grid Search: model, saveToPath
                 """
-                _values["model"].save(_values["saveToPath"])
+                _values["model"].save(_values["saveToPath"] + ".h5")
 
             @staticmethod
             def loadModel(_values: dict):
@@ -333,6 +333,145 @@ class ModelSchemes:
                 if returnPredictions:
                     return test_acc, predictions
                 return test_acc
+
+    class NamedEntityRecognition:
+        class Scheme1:
+            def __init__(self, language: str, pipesAndLabels: dict):
+                """
+                :language (str): Your model's language.
+                :pipesAndLabels (dict): A dictionary containing the pipes and label values to be used in the model. Each key of the dictionary is referred to as a pipe, and the value opposite each key is referred to as the labels of that pipe.
+                """
+                self.staticValues = {
+                    "language": language,
+                    "pipesAndLabels": pipesAndLabels,
+                }
+                self.params = {
+                    "epochs": [10, 30, 50, 100],
+                    "drops": [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+                }
+
+            @staticmethod
+            def trainModel(param, _values: dict):
+                """
+                :param (dict): This variable represents the data to be used in the training of the model. It should be a dictionary obtained from the ModelSchemes.NamedEntityRecognition.Scheme1.params dictionary.
+                :_values (dict): The following variables must be included in this variable: staticValues(static values to be used in model training (e.g. ModelSchemes.NamedEntityRecognition.Scheme1().staticValues)), trainData(training data to be used in model slope (such as Model.Schemes.NamedEntityRecognition.Scheme().loadData) must be loaded))
+                """
+                import spacy, random
+                from spacy.training.example import Example
+
+                staticValues = _values["staticValues"]
+                trainData = _values["trainData"]
+
+                nlp = spacy.blank(staticValues["language"])
+                for key, item in staticValues["pipesAndLabels"].items():
+                    ner = nlp.add_pipe(key)
+                    for l in item:
+                        ner.add_label(l)
+
+                data = []
+                for text, annotations in trainData:
+                    example = Example.from_dict(nlp.make_doc(text), annotations)
+                    data.append(example)
+
+                trainData = data
+                nlp.begin_training()
+                for epoch in range(param["epochs"]):
+                    random.shuffle(trainData)
+                    print(
+                        f"Epoch {str(epoch)}/{str(len(range(param['epochs'])))}", end=""
+                    )
+                    for i, example in enumerate(trainData):
+                        print(f"{str((i/len(trainData))*100)}% \r", end="")
+                        nlp.update([example], drop=param["drops"])
+                return nlp, None, None
+
+            @staticmethod
+            def saveModel(_values: dict):
+                """
+                :_values (dict): There are no mandatory variables in this variable. However, this variable must be in the method. The following values will be automatically populated during Grid Search: model, saveToPath
+                """
+                import spacy
+
+                _values["model"].to_disk(_values["saveToPath"])
+
+            @staticmethod
+            def loadModel(_values: dict):
+                """
+                :_values (dict): There are no mandatory variables in this variable. However, this variable must be in the method. The following values will be automatically populated during Grid Search: modelPath
+                """
+                import spacy
+
+                return spacy.load(_values["modelPath"])
+
+            @staticmethod
+            def hardwareSetup(_values: dict):
+                """
+                :_values (dict): There are no mandatory variables in this variable. However, this variable must be in the method.
+                """
+                pass
+
+            @staticmethod
+            def loadData(_values: dict):
+                """
+                :_values (dict): There are no mandatory variables in this variable. However, this variable must be in the method. The following values will be automatically populated during Grid Search: data, batchSize, returnDataOnly
+                """
+                try:
+                    import json
+
+                    data = _values["data"]
+                    with open(data, "r", encoding="utf-8") as j:
+                        data = json.load(j)
+                    data = data["data"]
+                    for i, d in enumerate(data.copy()):
+                        data[i] = tuple(d)
+                    return data
+                except:
+                    pass
+
+            @staticmethod
+            def splitData(_values: dict):
+                """
+                :_values (dict): If you want to split your data in a ratio you want. Add the following variable to this variable: splitRatio(split rates of your data (train, test) note: val = 1- (train + test)). The following values will be automatically populated during Grid Search: sourcePath, saveToPath, splitRatio
+                """
+                from Burobot.Data.Dominate import DominateLabel
+
+                splitRatio = (0.7, 0.3)
+                if "splitRatio" in list(_values.keys()):
+                    splitRatio = _values["splitRatio"]
+                return DominateLabel.NamedEntityRecognition.splitData(
+                    _values["sourcePath"], _values["saveToPath"], splitRatio
+                )
+
+            @staticmethod
+            def testModel(_values: dict):
+                """
+                :_values (dict): There are no mandatory variables in this variable. However, this variable must be in the method. The following values will be automatically populated during Grid Search: model, testData, returnPredictions
+                """
+                import spacy
+
+                correctPredictions = 0
+                totalPredictions = 0
+
+                testData = _values["testData"]
+                model = _values["model"]
+                for text, annotations in testData:
+                    doc = model(text)
+                    predictedEntities = [(ent.text, ent.label_) for ent in doc.ents]
+                    actualEntities = [
+                        (text[start:end], label)
+                        for start, end, label in annotations.get("entities", [])
+                    ]
+
+                    for predictedEntity in predictedEntities:
+                        if predictedEntity in actualEntities:
+                            correctPredictions += 1
+
+                    totalPredictions += len(predictedEntities)
+
+                accuracy = (
+                    correctPredictions / totalPredictions if totalPredictions > 0 else 0
+                )
+                return accuracy * 100
 
     def generateIterFromParamDict(paramDict: dict):
         """
@@ -718,7 +857,7 @@ class GridSearchTrain:
                 )
                 modelSaveMethodValues.update(
                     {
-                        "saveToPath": os.path.join(currentSaveFolder, "lastModel.h5"),
+                        "saveToPath": os.path.join(currentSaveFolder, "lastModel"),
                         "model": trainedModel,
                     }
                 )
@@ -759,7 +898,7 @@ class GridSearchTrain:
                     saveToPath,
                     "log.log",
                 )
-                return None, None, None, None
+                return None, None, None, usedParams
 
             accuracy = modelTestmethod(modelTestmethodValues)
             modelTestmethodValues.update({"model": None})
@@ -800,7 +939,7 @@ class GridSearchTrain:
                 )
                 modelSaveMethodValues.update(
                     {
-                        "saveToPath": os.path.join(saveToPath, "bestModel.h5"),
+                        "saveToPath": os.path.join(saveToPath, "bestModel"),
                         "model": bestModel,
                     }
                 )
