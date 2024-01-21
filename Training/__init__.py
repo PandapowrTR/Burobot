@@ -177,7 +177,7 @@ class ModelSchemes:
                 """
                 import tensorflow as tf
 
-                tf.keras.models.load_model(_values["modelPath"])
+                return tf.keras.models.load_model(_values["modelPath"])
 
             @staticmethod
             def hardwareSetup(_values: dict):
@@ -724,6 +724,7 @@ class GridSearchTrain:
                 )
                 modelSaveMethod(modelSaveMethodValues)
                 modelTestmethodValues.update({"model": trainedModel})
+                del trainedModel
             except Exception as e:
                 usedParams.append(param)
                 # save usedParams
@@ -761,12 +762,13 @@ class GridSearchTrain:
                 return None, None, None, None
 
             accuracy = modelTestmethod(modelTestmethodValues)
+            modelTestmethodValues.update({"model": None})
             GridSearchTrain.__writeLog(
                 "Tested model. Accuracy: " + str(accuracy), saveToPath, "log.log"
             )
             if checkpointModelPath is not None:
                 try:
-                    modelLoadMethodValues.update({"modelPath":checkpointModelPath})
+                    modelLoadMethodValues.update({"modelPath": checkpointModelPath})
                     checkpointModel = modelLoadMethod(modelLoadMethodValues)
                     modelTestmethodValues.update({"model": checkpointModel})
                     checkpointAccuracy = modelTestmethod(modelTestmethodValues)
