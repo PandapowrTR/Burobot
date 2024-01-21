@@ -86,9 +86,9 @@ class ModelSchemes:
                         convRegularizers = param["convRegularizers"]
                         if convRegularizers is not None:
                             if convRegularizers == tf.keras.regularizers.l2:
-                                convRegularizers = convRegularizers(param["convRegularizerCoefficients"][
-                                    0
-                                ])
+                                convRegularizers = convRegularizers(
+                                    param["convRegularizerCoefficients"][0]
+                                )
                             elif convRegularizers == tf.keras.regularizers.l1_l2:
                                 convRegularizers = convRegularizers(
                                     param["convRegularizerCoefficients"][0],
@@ -149,7 +149,9 @@ class ModelSchemes:
                         # find what regularizer using
                         denseRegularizers = param["denseRegularizers"]
                         if denseRegularizers == tf.keras.regularizers.l2:
-                            denseRegularizers = denseRegularizers(param["denseRegularizerCoefficients"][0])
+                            denseRegularizers = denseRegularizers(
+                                param["denseRegularizerCoefficients"][0]
+                            )
                         elif denseRegularizers == tf.keras.regularizers.l1_l2:
                             denseRegularizers = denseRegularizers(
                                 param["denseRegularizerCoefficients"][0],
@@ -462,7 +464,8 @@ class ModelSchemes:
                         f"Epoch {str(epoch)}/{str(len(range(param['epochs'])))}", end=""
                     )
                     for i, example in enumerate(trainData):
-                        print(f"{str((i/len(trainData))*100)}% \r", end="")
+                        progress = ((i + 1) / len(trainData)) * 100
+                        print(f" {progress:.1f}%", end="\r")
                         nlp.update([example], drop=param["drops"])
                 return nlp, None, None
 
