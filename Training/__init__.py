@@ -14,6 +14,8 @@ class ModelSchemes:
                 :classCount (int): This variable determines how many classes are in your data set.
                 :imageShape (tuple): This variable determines the size of the images in the data set. (width, height, channel(1:gray, 3:rgb))
                 """
+                import tensorflow as tf
+
                 self.params = {
                     "epochs": [50, 100],
                     "batchSizes": [2, 6, 8, 16, 32],
@@ -22,11 +24,32 @@ class ModelSchemes:
                     "convActivationFunction": ["relu"],
                     "convFilters": [32, 64, 128, 256, 512],
                     "convKernelSizes": [(2, 2), (3, 3)],
+                    "convRegularizers": [
+                        tf.keras.regularizers.l2,
+                        tf.keras.regularizers.l1_l2,
+                        None,
+                    ],
+                    "convRegularizerCoefficients": [
+                        (0.01, 0.01),
+                        (0.1, 0.1),
+                        (0.5, 0.5),
+                    ],
                     "pool2DKernelSizes": [(2, 2), (3, 3)],
                     "denseCounts": [1, 2, 3],
                     "denseUnits": [256, 512],
                     "denseActivationFunctions": ["relu"],
                     "dropOuts": [0, 0.3, 0.5, 0.7],
+                    "denseRegularizers": [
+                        tf.keras.regularizers.l2,
+                        tf.keras.regularizers.l1_l2,
+                        None,
+                    ],
+                    "denseRegularizerCoefficients": [
+                        (0.01, 0.01),
+                        (0.1, 0.1),
+                        (0.5, 0.5),
+                    ],  # if l1_l2 ind 0: l1, ind 1: l2 | if l2: ind 0:l2
+                    "useBatchNormalization": [True, False],
                     "outputClassificationFunction": ["softmax"],
                     "compileOptimizerFunctions": ["adam"],
                     "compileLossFunctions": ["categorical_crossentropy"],
@@ -65,23 +88,60 @@ class ModelSchemes:
                 model = tf.keras.models.Sequential()
                 for c in range(param["convRepeat"]):
                     for _ in range(param["convCount"]):
-                        if c == 0:
-                            model.add(
-                                tf.keras.layers.Conv2D(
-                                    param["convFilters"],
-                                    param["convKernelSizes"],
-                                    activation=param["convActivationFunction"],
-                                    input_shape=staticValues["imageShape"],
+                        convRegularizers = param["convRegularizers"]
+                        if convRegularizers is not None:
+                            if convRegularizers == tf.keras.regularizers.l2:
+                                convRegularizers = param["convRegularizerCoefficients"][
+                                    0
+                                ]
+                            elif convRegularizers == tf.keras.regularizers.l1_l2:
+                                convRegularizers = (
+                                    param["convRegularizerCoefficients"][0],
+                                    param["convRegularizerCoefficients"][1],
                                 )
-                            )
+                            else:
+                                # if no compatible regularizer. Throw error.
+                                raise ValueError(
+                                    "Incompatible Conv regularizer. Please use l2 or l1_l2."
+                                )
+                            if c == 0:
+                                model.add(
+                                    tf.keras.layers.Conv2D(
+                                        param["convFilters"],
+                                        param["convKernelSizes"],
+                                        activation=param["convActivationFunction"],
+                                        input_shape=staticValues["imageShape"],
+                                        kernel_regularizer=convRegularizers,
+                                    )
+                                )
+                            else:
+                                model.add(
+                                    tf.keras.layers.Conv2D(
+                                        param["convFilters"],
+                                        param["convKernelSizes"],
+                                        activation=param["convActivationFunction"],
+                                        kernel_regularizer=convRegularizers,
+                                    )
+                                )
                         else:
-                            model.add(
-                                tf.keras.layers.Conv2D(
-                                    param["convFilters"],
-                                    param["convKernelSizes"],
-                                    activation=param["convActivationFunction"],
+                            if c == 0:
+                                model.add(
+                                    tf.keras.layers.Conv2D(
+                                        param["convFilters"],
+                                        param["convKernelSizes"],
+                                        activation=param["convActivationFunction"],
+                                        input_shape=staticValues["imageShape"],
+                                    )
                                 )
-                            )
+                            else:
+                                model.add(
+                                    tf.keras.layers.Conv2D(
+                                        param["convFilters"],
+                                        param["convKernelSizes"],
+                                        activation=param["convActivationFunction"],
+                                    )
+                                )
+
                     if c != len(range(param["convRepeat"])):
                         model.add(
                             tf.keras.layers.MaxPooling2D(
@@ -90,13 +150,39 @@ class ModelSchemes:
                         )
                 model.add(tf.keras.layers.Flatten())
                 for _ in range(param["denseCounts"]):
-                    model.add(
-                        tf.keras.layers.Dense(
-                            param["denseUnits"],
-                            activation=param["denseActivationFunctions"],
+                    if param["denseRegularizers"] is not None:
+                        # find what regularizer using
+                        denseRegularizers = param["denseRegularizers"]
+                        if denseRegularizers == tf.keras.regularizers.l2:
+                            denseRegularizers = param["denseRegularizerCoefficients"][0]
+                        elif denseRegularizers == tf.keras.regularizers.l1_l2:
+                            denseRegularizers = (
+                                param["denseRegularizerCoefficients"][0],
+                                param["denseRegularizerCoefficients"][1],
+                            )
+                        else:
+                            # if no compatible regularizer. Throw error.
+                            raise ValueError(
+                                "Incompatible Dense regularizer. Please use l2 or l1_l2."
+                            )
+                        model.add(
+                            tf.keras.layers.Dense(
+                                param["denseUnits"],
+                                activation=param["denseActivationFunctions"],
+                                kernel_regularizer=denseRegularizers,
+                            )
                         )
-                    )
+                    else:
+                        model.add(
+                            tf.keras.layers.Dense(
+                                param["denseUnits"],
+                                activation=param["denseActivationFunctions"],
+                            )
+                        )
+
                     model.add(tf.keras.layers.Dropout(param["dropOuts"]))
+                    if param["useBatchNormalization"]:
+                        model.add(tf.keras.layers.BatchNormalization())
                 model.add(
                     tf.keras.layers.Dense(
                         staticValues["classCount"],
