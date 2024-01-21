@@ -86,11 +86,11 @@ class ModelSchemes:
                         convRegularizers = param["convRegularizers"]
                         if convRegularizers is not None:
                             if convRegularizers == tf.keras.regularizers.l2:
-                                convRegularizers = param["convRegularizerCoefficients"][
+                                convRegularizers = convRegularizers(param["convRegularizerCoefficients"][
                                     0
-                                ]
+                                ])
                             elif convRegularizers == tf.keras.regularizers.l1_l2:
-                                convRegularizers = (
+                                convRegularizers = convRegularizers(
                                     param["convRegularizerCoefficients"][0],
                                     param["convRegularizerCoefficients"][1],
                                 )
@@ -149,9 +149,9 @@ class ModelSchemes:
                         # find what regularizer using
                         denseRegularizers = param["denseRegularizers"]
                         if denseRegularizers == tf.keras.regularizers.l2:
-                            denseRegularizers = param["denseRegularizerCoefficients"][0]
+                            denseRegularizers = denseRegularizers(param["denseRegularizerCoefficients"][0])
                         elif denseRegularizers == tf.keras.regularizers.l1_l2:
-                            denseRegularizers = (
+                            denseRegularizers = denseRegularizers(
                                 param["denseRegularizerCoefficients"][0],
                                 param["denseRegularizerCoefficients"][1],
                             )
