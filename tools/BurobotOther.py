@@ -78,22 +78,18 @@ def saveFunctionsAsPythonFile(
 def convertModelFunctionToString(mFunction):
     try:
         moduleName = mFunction.__module__
-        if moduleName.startswith("torch.optim") and isinstance(mFunction, type):
+        if moduleName.find("torch.optim") != -1:
             return "torch.optim." + mFunction.__name__
-        elif moduleName.startswith("torch.nn") and isinstance(mFunction, type):
+        elif moduleName.find("torch.nn") != -1:
             return "torch.nn." + mFunction.__name__
-        elif moduleName.startswith("tensorflow.keras.optimizers") and isinstance(
-            mFunction, type
-        ):
-            return "tf.keras.optimizers" + mFunction.__name__
-        elif moduleName.startswith("tensorflow.keras.losses") and isinstance(
-            mFunction, type
-        ):
-            return "tf.keras.losses" + mFunction.__name__
-        elif moduleName.startswith("tensorflow.keras.activations") and isinstance(
-            mFunction, type
-        ):
-            return "tf.keras.activations" + mFunction.__name__
+        elif moduleName.find("keras.src.optimizers") != -1:
+            return "tf.keras.optimizers." + mFunction.__name__
+        elif moduleName.find("keras.src.losses") != -1:
+            return "tf.keras.losses." + mFunction.__name__
+        elif moduleName.find("keras.src.activations") != -1:
+            return "tf.keras.activations." + mFunction.__name__
+        elif moduleName.find("keras.src.regularizers") != -1:
+            return "tf.keras.regularizers." + mFunction.__name__
         return None
     except:
         return None
