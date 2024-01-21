@@ -17,24 +17,20 @@ class ModelSchemes:
                 import tensorflow as tf
 
                 self.params = {
-                    "epochs": [50, 100],
-                    "batchSizes": [2, 6, 8, 16, 32],
+                    "epochs": [50],
+                    "batchSizes": [16, 32],
                     "convRepeat": [1, 2, 3],
                     "convCount": [1, 2, 3],
                     "convActivationFunction": ["relu"],
-                    "convFilters": [32, 64, 128, 256, 512],
-                    "convKernelSizes": [(2, 2), (3, 3)],
+                    "convFilters": [64, 128, 256, 512],
+                    "convKernelSizes": [(3, 3)],
                     "convRegularizers": [
                         tf.keras.regularizers.l2,
                         tf.keras.regularizers.l1_l2,
                         None,
                     ],
-                    "convRegularizerCoefficients": [
-                        (0.01, 0.01),
-                        (0.1, 0.1),
-                        (0.5, 0.5),
-                    ],
-                    "pool2DKernelSizes": [(2, 2), (3, 3)],
+                    "convRegularizerCoefficients": [(0.01, 0.01), (0.1, 0.1)],
+                    "pool2DKernelSizes": [(2, 2)],
                     "denseCounts": [1, 2, 3],
                     "denseUnits": [256, 512],
                     "denseActivationFunctions": ["relu"],
@@ -47,7 +43,6 @@ class ModelSchemes:
                     "denseRegularizerCoefficients": [
                         (0.01, 0.01),
                         (0.1, 0.1),
-                        (0.5, 0.5),
                     ],  # if l1_l2 ind 0: l1, ind 1: l2 | if l2: ind 0:l2
                     "useBatchNormalization": [True, False],
                     "outputClassificationFunction": ["softmax"],
