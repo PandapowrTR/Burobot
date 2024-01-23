@@ -566,6 +566,8 @@ class Augmentation:
                             newLabels.append([xmin, ymin, width, height])
                         classLabels.append(l["label"])
                     labels = newLabels
+                    for li, l in enumerate(labels.copy()):
+                        labels[li] = max(l, 0)
                     del newLabels
                     for i in range(augRate[1] + 1):
                         augmentedData = augRate[0](
