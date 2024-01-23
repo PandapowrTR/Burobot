@@ -40,6 +40,8 @@ class ObjectDetection:
                             labelName = corr["label"]
                             classIndex = classLabels.index(labelName)
                             corr = corr["points"][0]
+                            if len(corr) == 2:
+                                corr = corr["points"][0] + corr["points"][1]
                             xMin, yMin, xMax, yMax = corr[0], corr[1], corr[2], corr[3]
                             xCenter = (xMin + xMax) / 2.0
                             yCenter = (yMin + yMax) / 2.0
