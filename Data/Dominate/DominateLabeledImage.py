@@ -567,7 +567,10 @@ class Augmentation:
                         classLabels.append(l["label"])
                     labels = newLabels
                     for li, l in enumerate(labels.copy()):
-                        labels[li] = max(l, 0)
+                        newL = []
+                        for l2 in l:
+                            newL.append(max(l2, 0))
+                        labels[li] = newL
                     del newLabels
                     for i in range(augRate[1] + 1):
                         augmentedData = augRate[0](
