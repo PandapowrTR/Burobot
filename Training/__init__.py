@@ -231,8 +231,8 @@ class ModelSchemes:
                     batch_size=param["batchSizes"],
                     callbacks=[early_stoping, reduce, checkpoint],
                     verbose=1,
-                    # use_multiprocessing=staticValues["useMultiprocessing"],
-                    # workers=workers,
+                    use_multiprocessing=staticValues["useMultiprocessing"],
+                    workers=workers,
                 )
 
                 gc.collect()
