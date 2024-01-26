@@ -981,6 +981,15 @@ class GridSearchTrain:
                     saveToPath,
                     "log.log",
                 )
+                try:
+                    BurobotOther.zipFolder(
+                        currentSaveFolder,
+                        os.path.join(saveToPath, str(loopIndex) + "Train.zip"),
+                    )
+                    BurobotOther.deleteFilesInFolder(currentSaveFolder)
+                    os.rmdir(currentSaveFolder)
+                except:
+                    pass
                 return None, None, None, usedParams
 
             accuracy = modelTestmethod(modelTestmethodValues)
@@ -1076,6 +1085,16 @@ class GridSearchTrain:
             GridSearchTrain.__writeLog(
                 "An unknown error occurred. Error: " + str(e), saveToPath, "log.log"
             )
+        finally:
+            try:
+                BurobotOther.zipFolder(
+                    currentSaveFolder,
+                    os.path.join(saveToPath, str(loopIndex) + "Train.zip"),
+                )
+                BurobotOther.deleteFilesInFolder(currentSaveFolder)
+                os.rmdir(currentSaveFolder)
+            except:
+                pass
         return bestModel, bestAccuracy, bestHistory, usedParams
 
     @staticmethod
