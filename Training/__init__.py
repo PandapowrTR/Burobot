@@ -1197,41 +1197,44 @@ class GridSearchTrain:
         paramsIter = ModelSchemes.generateIterFromParamDict(params)
         usedParams = []
         for loopIndex, param in enumerate(paramsIter):
-            (
-                bestModel,
-                bestAccuracy,
-                bestHistory,
-                usedParams,
-            ) = GridSearchTrain.__gridLoop(
-                loopIndex,
-                param,
-                paramsIter,
-                data,
-                saveToPath,
-                modelName,
-                usedParams,
-                bestAccuracy,
-                bestModel,
-                bestModelPath,
-                bestHistory,
-                trainPath,
-                testPath,
-                valPath,
-                loadDatamethod,
-                loadDatamethodValues,
-                modelTestmethod,
-                modelTestmethodValues,
-                modelTrainmethod,
-                modelTrainValues,
-                modelSaveMethod,
-                modelSaveMethodValues,
-                modelLoadMethod,
-                modelLoadMethodValues,
-                hardwareSetupmethod,
-                hardwareSetupmethodValues,
-                splitDatamethod,
-                splitDatamethodValues,
-            )
+            try:
+                (
+                    bestModel,
+                    bestAccuracy,
+                    bestHistory,
+                    usedParams,
+                ) = GridSearchTrain.__gridLoop(
+                    loopIndex,
+                    param,
+                    paramsIter,
+                    data,
+                    saveToPath,
+                    modelName,
+                    usedParams,
+                    bestAccuracy,
+                    bestModel,
+                    bestModelPath,
+                    bestHistory,
+                    trainPath,
+                    testPath,
+                    valPath,
+                    loadDatamethod,
+                    loadDatamethodValues,
+                    modelTestmethod,
+                    modelTestmethodValues,
+                    modelTrainmethod,
+                    modelTrainValues,
+                    modelSaveMethod,
+                    modelSaveMethodValues,
+                    modelLoadMethod,
+                    modelLoadMethodValues,
+                    hardwareSetupmethod,
+                    hardwareSetupmethodValues,
+                    splitDatamethod,
+                    splitDatamethodValues,
+                )
+            except:
+                pass
             paramsIter.remove(param)
         return bestModel, bestAccuracy, bestHistory
 
