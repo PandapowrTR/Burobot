@@ -54,12 +54,13 @@ def collectFromWebcam(
             (0, 0, 255),
             2,
         )
-        if keyboard.is_pressed("c"):
-            collect = not collect
-            time.sleep(1)
-        elif keyboard.is_pressed("q"):
+        key = cv2.waitKey(30) & 0xFF
+        if key == ord('q'):
             cv2.destroyAllWindows()
             break
+        if key == ord("c"):
+            collect = not collect
+            time.sleep(1)
         if collect:
             imgName = os.path.join(saveToPath, f"{str(i)}.jpg")
             try:
