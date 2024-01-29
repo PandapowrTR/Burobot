@@ -501,7 +501,7 @@ class Augmentation:
                     labelsFiles[1].append(file)  # only file
         for root, _, files in os.walk(dataPath):
             for fi, file in enumerate(files):
-                print(f"🔄 Data augmentating {(fi/len(files))*100}% 😎\r")
+                print(f"\r🔄 Data augmentating {((fi+1)/len(files))*100}% 😎", end="")
                 fileCount = str(file)
                 if fileCount.lower().endswith((".png", ".jpg", ".jpeg")):
                     imagePath = os.path.join(root, file)
