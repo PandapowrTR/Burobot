@@ -178,7 +178,7 @@ def collectFromVideo(videoPath: str, saveToPath: str, i: int = 0, printInfo:bool
             frame = cv2.resize(frame, (int(screenWidth*0.3), int(screenHeight*0.3)))
 
             # Save the frame when 'c' is pressed
-            key = cv2.waitKey(30) & 0xFF
+            key = cv2.waitKey(0) & 0xFF
             if key == ord('v'):
                 save = not save
             if key == ord("c") or save:
