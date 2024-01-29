@@ -22,6 +22,12 @@ def clearAndMemoryTo():
         return
     except:
         pass
+    try:
+        from IPython.display import clear_output
+
+        clear_output()
+    except:
+        pass
     # Clear console output (for non-Colab environments)
     os.system("cls" if os.name == "nt" else "clear")
 
@@ -43,6 +49,12 @@ def clear():
 
         output.clear()
         return
+    except:
+        pass
+    try:
+        from IPython.display import clear_output
+
+        clear_output()
     except:
         pass
     # Clear console output (for non-Colab environments)
