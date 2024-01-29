@@ -205,14 +205,15 @@ def deleteSimilarImgs(path, p: float = 0.9):
                 for root2, _, checkFiles in os.walk(path):
                     for checkFile in checkFiles:
                         try:
-                            if imgAreSimilar(
-                                os.path.join(root, file),
-                                os.path.join(root2, checkFile),
-                                p,
-                            ):
-                                os.remove(os.path.join(root2, checkFile))
-                                deletedCount += 1
-                                print(f"Deleted {str(checkFile)} 🗑️")
+                            if os.path.join(root2, checkFile) != os.path.join(root, file):
+                                if imgAreSimilar(
+                                    os.path.join(root, file),
+                                    os.path.join(root2, checkFile),
+                                    p,
+                                ):
+                                    os.remove(os.path.join(root2, checkFile))
+                                    deletedCount += 1
+                                    print(f"Deleted {str(checkFile)} 🗑️")
                         except:
                             pass
             prog += 1

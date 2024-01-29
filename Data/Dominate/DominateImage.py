@@ -193,15 +193,16 @@ def deleteSimilarImgs(path, similarity: float = 0.9):
         images = os.listdir(os.path.join(path, folder))
         i = 0
         for mainImgIndex, mainImg in enumerate(images):
-            for checkImg in images[1:mainImgIndex]:
+            for checkImg in images:
                 try:
-                    if imgAreSimilar(
-                        os.path.join(path, folder, mainImg),
-                        os.path.join(path, folder, checkImg),
-                        similarity,
-                    ):
-                        os.remove(os.path.join(path, folder, checkImg))
-                        deletedCount += 1
+                    if os.path.join(path, folder, mainImg) != os.path.join(path, folder, checkImg):
+                        if imgAreSimilar(
+                            os.path.join(path, folder, mainImg),
+                            os.path.join(path, folder, checkImg),
+                            similarity,
+                        ):
+                            os.remove(os.path.join(path, folder, checkImg))
+                            deletedCount += 1
                 except:
                     pass
             progress = (mainImgIndex / len(images)) * 100
