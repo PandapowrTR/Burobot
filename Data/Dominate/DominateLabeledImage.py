@@ -454,7 +454,6 @@ class Augmentation:
         labelsPath: str,  # type: ignore
         augRate: list,
         saveToPath,
-        labelSaveFormat: str = "albumentations",
         equlizeClasses: bool = True,
         similarity: float = 0.9,
     ):
@@ -466,11 +465,11 @@ class Augmentation:
             labelsPath (str): The path to the directory containing the image labes (for object detection datas).
             augRate (list): A list containing an augmentation pipeline (albumentations.Compose) and the number of augmentations per image.
             saveToPath (str): The path where augmented images will be saved.
-            labelSaveFormat (str): The option for label save format. Available formats: albumentations(default), yolo, pascal_voc, coco
             equlizeClasses (bool): The option for equlize class count. Default is True.
             similarity (float, optional): Similarity threshold for deleting similar images. To disable enter under 0 or None. Default is 0.9.
         """
         BurobotOutput.clearAndMemoryTo()
+        labelSaveFormat = "albumentations"
         Augmentation._augDataErr(dataPath, labelsPath, saveToPath, augRate, labelSaveFormat)  # type: ignore
 
         augRate[0] = alb.Compose(
@@ -501,79 +500,45 @@ class Augmentation:
                     labelsFiles[1].append(file)  # only file
         for root, _, files in os.walk(dataPath):
             for file in files:
-                try:
-                    fileCount = str(file)
-                    if fileCount.lower().endswith((".png", ".jpg", ".jpeg")):
-                        imagePath = os.path.join(root, file)
-                        image = Image.open(imagePath)
-                        labels = {}
-                        classLabels = []
-                        copyLabels = {}
-                        labelFile = labelsFiles[0][
-                            labelsFiles[1].index(".".join(file.split(".")[:-1]) + ".json")
-                        ]
+                fileCount = str(file)
+                if fileCount.lower().endswith((".png", ".jpg", ".jpeg")):
+                    imagePath = os.path.join(root, file)
+                    image = Image.open(imagePath)
+                    labels = {}
+                    classLabels = []
+                    copyLabels = {}
+                    labelFile = labelsFiles[0][
+                        labelsFiles[1].index(".".join(file.split(".")[:-1]) + ".json")
+                    ]
 
-                        imgWidth, imgHeight = image.size
-                        with open(labelFile, "r") as label_json:
-                            labels = json.load(label_json)
-                        newLabels = []
-                        classLabels = []
-                        copyLabels = dict(labels)
-                        for l in copyLabels["shapes"]:
-                            # convert to albumentations format
-                            if labelSaveFormat == "albumentations":
-                                newLabels.append(
-                                    np.divide(
-                                        [
-                                            l["points"][0][0],
-                                            l["points"][0][1],
-                                            l["points"][1][0],
-                                            l["points"][1][1],
-                                        ],
-                                        [imgWidth, imgHeight, imgWidth, imgHeight],
-                                    )
-                                )
-                            # Convert to yolo format
-                            elif labelSaveFormat == "yolo":
-                                xCenter = (l["points"][0][0] + l["points"][1][0]) / (
-                                    2 * imgWidth
-                                )
-                                yCenter = (l["points"][0][1] + l["points"][1][1]) / (
-                                    2 * imgHeight
-                                )
-                                width = (
-                                    abs(l["points"][1][0] - l["points"][0][0]) / imgWidth
-                                )
-                                height = (
-                                    abs(l["points"][1][1] - l["points"][0][1]) / imgHeight
-                                )
-
-                                newLabels.append([xCenter, yCenter, width, height])
-                            # Convert to pascal_voc format
-                            elif labelSaveFormat == "pascal_voc":
-                                xmin = min(l["points"][0][0], l["points"][1][0])
-                                ymin = min(l["points"][0][1], l["points"][1][1])
-                                xmax = max(l["points"][0][0], l["points"][1][0])
-                                ymax = max(l["points"][0][1], l["points"][1][1])
-
-                                newLabels.append([xmin, ymin, xmax, ymax])
-                            # Convert to coco format
-                            elif labelSaveFormat == "coco":
-                                xmin = min(l["points"][0][0], l["points"][1][0])
-                                ymin = min(l["points"][0][1], l["points"][1][1])
-                                width = abs(l["points"][1][0] - l["points"][0][0])
-                                height = abs(l["points"][1][1] - l["points"][0][1])
-
-                                newLabels.append([xmin, ymin, width, height])
-                            classLabels.append(l["label"])
-                        labels = newLabels
-                        for li, l in enumerate(labels.copy()):
-                            newL = []
-                            for l2 in l:
-                                newL.append(max(l2, 0))
-                            labels[li] = newL
-                        del newLabels
-                        for i in range(augRate[1] + 1):
+                    imgWidth, imgHeight = image.size
+                    with open(labelFile, "r") as label_json:
+                        labels = json.load(label_json)
+                    newLabels = []
+                    classLabels = []
+                    copyLabels = dict(labels)
+                    for l in copyLabels["shapes"]:
+                        # convert to albumentations format
+                        newLabels.append(
+                            np.divide(
+                                [
+                                    l["points"][0][0],
+                                    l["points"][0][1],
+                                    l["points"][1][0],
+                                    l["points"][1][1],
+                                ],
+                                [imgWidth, imgHeight, imgWidth, imgHeight],
+                            )
+                        )
+                    labels = newLabels
+                    for li, l in enumerate(labels.copy()):
+                        newL = []
+                        for l2 in l:
+                            newL.append(max(l2, 0))
+                        labels[li] = newL
+                    del newLabels
+                    for i in range(augRate[1] + 1):
+                        try:
                             augmentedData = augRate[0](
                                 image=np.array(image),
                                 bboxes=labels,
@@ -604,8 +569,8 @@ class Augmentation:
                                 for lab in range(len(augmentedLabels)):
                                     copyLabels["shapes"][lab]["points"] = augmentedLabels
                                 json.dump(copyLabels, label_json, indent=4)
-                except:
-                    pass
+                        except:
+                            pass
 
         BurobotOutput.clearAndMemoryTo()
 
