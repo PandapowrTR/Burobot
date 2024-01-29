@@ -489,7 +489,6 @@ class Augmentation:
         deleteAloneData(dataPath, labelsPath)
         BurobotOutput.clearAndMemoryTo()
         BurobotOutput.printBurobot()
-        print("🔄 Data augmentating 😎")
         labelsFiles = [[], []]
         for root, _, files in os.walk(labelsPath):
             for file in files:
@@ -500,7 +499,8 @@ class Augmentation:
                     )  # all path and file
                     labelsFiles[1].append(file)  # only file
         for root, _, files in os.walk(dataPath):
-            for file in files:
+            for fi, file in enumerate(files):
+                print(f"🔄 Data augmentating {(fi/len(files))*100}% 😎\r")
                 fileCount = str(file)
                 if fileCount.lower().endswith((".png", ".jpg", ".jpeg")):
                     imagePath = os.path.join(root, file)
@@ -574,6 +574,10 @@ class Augmentation:
                     del newLabels
                     for i in range(augRate[1] + 1):
                         try:
+                            for l in labels:
+                                xMin, yMin, xMax, yMax = l[:4]
+                                if xMax <= xMin or yMax <= yMin:
+                                    raise ValueError("A")
                             augmentedData = augRate[0](
                                 image=np.array(image),
                                 bboxes=labels,
