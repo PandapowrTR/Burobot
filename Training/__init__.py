@@ -48,7 +48,7 @@ class ModelSchemes:
                     "outputClassificationFunction": ["softmax"],
                     "compileOptimizerFunctions": ["adam"],
                     "compileLossFunctions": ["categorical_crossentropy"],
-                    "modelValueTypes": ["uint8", "bfloat16", "float32", "float16"],
+                    "modelValueTypes": ["bfloat16", "float32", "float16"],
                 }
                 self.staticValues = {
                     "classCount": classCount,
