@@ -18,7 +18,7 @@ class ModelSchemes:
 
                 self.params = {
                     "epochs": [50],
-                    "batchSizes": [16, 32],
+                    "batchSizes": [32],
                     "convRepeat": [1, 2, 3],
                     "convCount": [1, 2, 3],
                     "convActivationFunction": ["relu"],
@@ -48,6 +48,7 @@ class ModelSchemes:
                     "outputClassificationFunction": ["softmax"],
                     "compileOptimizerFunctions": ["adam"],
                     "compileLossFunctions": ["categorical_crossentropy"],
+                    "modelValueTypes": ["uint8", "bfloat16", "float32", "float16"],
                 }
                 self.staticValues = {
                     "classCount": classCount,
@@ -107,6 +108,7 @@ class ModelSchemes:
                                         activation=param["convActivationFunction"],
                                         input_shape=staticValues["imageShape"],
                                         kernel_regularizer=convRegularizers,
+                                        dtype=param["modelValueTypes"],
                                     )
                                 )
                             else:
@@ -116,6 +118,7 @@ class ModelSchemes:
                                         param["convKernelSizes"],
                                         activation=param["convActivationFunction"],
                                         kernel_regularizer=convRegularizers,
+                                        dtype=param["modelValueTypes"],
                                     )
                                 )
                         else:
@@ -126,6 +129,7 @@ class ModelSchemes:
                                         param["convKernelSizes"],
                                         activation=param["convActivationFunction"],
                                         input_shape=staticValues["imageShape"],
+                                        dtype=param["modelValueTypes"],
                                     )
                                 )
                             else:
@@ -134,6 +138,7 @@ class ModelSchemes:
                                         param["convFilters"],
                                         param["convKernelSizes"],
                                         activation=param["convActivationFunction"],
+                                        dtype=param["modelValueTypes"],
                                     )
                                 )
 
@@ -167,6 +172,7 @@ class ModelSchemes:
                                 param["denseUnits"],
                                 activation=param["denseActivationFunctions"],
                                 kernel_regularizer=denseRegularizers,
+                                dtype=param["modelValueTypes"],
                             )
                         )
                     else:
@@ -174,6 +180,7 @@ class ModelSchemes:
                             tf.keras.layers.Dense(
                                 param["denseUnits"],
                                 activation=param["denseActivationFunctions"],
+                                dtype=param["modelValueTypes"],
                             )
                         )
 
@@ -184,6 +191,7 @@ class ModelSchemes:
                     tf.keras.layers.Dense(
                         staticValues["classCount"],
                         activation=param["outputClassificationFunction"],
+                        dtype=param["modelValueTypes"],
                     )
                 )
 
