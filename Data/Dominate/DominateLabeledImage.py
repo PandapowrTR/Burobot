@@ -205,7 +205,9 @@ def deleteSimilarImgs(path, p: float = 0.9):
                 for root2, _, checkFiles in os.walk(path):
                     for checkFile in checkFiles:
                         try:
-                            if os.path.join(root2, checkFile) != os.path.join(root, file):
+                            if os.path.join(root2, checkFile) != os.path.join(
+                                root, file
+                            ):
                                 if imgAreSimilar(
                                     os.path.join(root, file),
                                     os.path.join(root2, checkFile),
@@ -417,38 +419,38 @@ class Augmentation:
         ]
 
     def _augDataErr(dataPath: str, labelsPath: str, saveToPath: str, augRate, labelSaveFormat: str):  # type: ignore
-            import albumentations as alb
+        import albumentations as alb
 
-            if not os.path.exists(dataPath):
-                raise FileNotFoundError("Can't find folder 🤷\n dataPath: " + str(dataPath))
+        if not os.path.exists(dataPath):
+            raise FileNotFoundError("Can't find folder 🤷\n dataPath: " + str(dataPath))
 
-            if not (os.path.exists(saveToPath)):
-                raise FileNotFoundError(
-                    "Can't find folder 🤷\n saveToPath: " + str(saveToPath)
-                )
-            if not (os.path.exists(labelsPath)):
-                raise FileNotFoundError(
-                    "Can't find folder 🤷\n saveToPath: " + str(labelsPath)
-                )
+        if not (os.path.exists(saveToPath)):
+            raise FileNotFoundError(
+                "Can't find folder 🤷\n saveToPath: " + str(saveToPath)
+            )
+        if not (os.path.exists(labelsPath)):
+            raise FileNotFoundError(
+                "Can't find folder 🤷\n saveToPath: " + str(labelsPath)
+            )
 
-            if not type(augRate[0]) == list:
-                raise ValueError(
-                    "Your augRate value is not valid. Please use augRate.(augMax, augMid, augLow) or for custom use [[albumentations.[YourTransform]], 15(augRateCount)]"
-                )
+        if not type(augRate[0]) == list:
+            raise ValueError(
+                "Your augRate value is not valid. Please use augRate.(augMax, augMid, augLow) or for custom use [[albumentations.[YourTransform]], 15(augRateCount)]"
+            )
 
-            if type(augRate[1]) != int:
-                raise ValueError(
-                    "Your augRate value is not valid. Please use augRate.(augMax, augMid, augLow) or for custom use (albumentations.Compose([params...]), augRateCount:int)"
-                )
-            for p in [dataPath, labelsPath]:
-                if not os.path.exists(p):
-                    raise FileNotFoundError("Can't find files 🤷\ndataPath: " + str(p))
+        if type(augRate[1]) != int:
+            raise ValueError(
+                "Your augRate value is not valid. Please use augRate.(augMax, augMid, augLow) or for custom use (albumentations.Compose([params...]), augRateCount:int)"
+            )
+        for p in [dataPath, labelsPath]:
+            if not os.path.exists(p):
+                raise FileNotFoundError("Can't find files 🤷\ndataPath: " + str(p))
 
-            if labelSaveFormat not in ["yolo", "albumentations", "pascal_voc", "coco"]:
-                raise ValueError(
-                    "Your labelSaveFormat value is not valid. Please use one of this formats: albumentations, yolo, pascal_voc, coco"
-                )
-            gc.collect()
+        if labelSaveFormat not in ["yolo", "albumentations", "pascal_voc", "coco"]:
+            raise ValueError(
+                "Your labelSaveFormat value is not valid. Please use one of this formats: albumentations, yolo, pascal_voc, coco"
+            )
+        gc.collect()
 
     def augData(
         dataPath: str,  # type: ignore
@@ -519,7 +521,13 @@ class Augmentation:
                     newLabels = []
                     classLabels = []
                     copyLabels = dict(labels)
-                    for l in copyLabels["shapes"]:
+                    for l in copyLabels["shapes"].copy():
+                        if len(l["points"]) == 1:
+                            lp = l["points"].copy()
+                            l["points"][0][0] = lp[0][0]
+                            l["points"][0][1] = lp[0][1]
+                            l["points"][1][0] = lp[0][2]
+                            l["points"][1][1] = lp[0][3]
                         # convert to albumentations format
                         if labelSaveFormat == "albumentations":
                             newLabels.append(
@@ -607,7 +615,9 @@ class Augmentation:
                                 "w",
                             ) as label_json:
                                 for lab in range(len(augmentedLabels)):
-                                    copyLabels["shapes"][lab]["points"] = augmentedLabels
+                                    copyLabels["shapes"][lab][
+                                        "points"
+                                    ] = augmentedLabels
                                 json.dump(copyLabels, label_json, indent=4)
                         except:
                             continue
