@@ -573,7 +573,7 @@ class Augmentation:
                             newL.append(max(l2, 0))
                         labels[li] = newL
                     del newLabels
-                    for i in range(augRate[1] + 1):
+                    for i in range(augRate[1]):
                         try:
                             for l in labels:
                                 xMin, yMin, xMax, yMax = l[:4]
