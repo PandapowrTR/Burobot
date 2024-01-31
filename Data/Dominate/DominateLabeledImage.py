@@ -524,10 +524,12 @@ class Augmentation:
                     for l in copyLabels["shapes"].copy():
                         if len(l["points"]) == 1:
                             lp = l["points"].copy()
-                            l["points"][0][0] = lp[0][0]
-                            l["points"][0][1] = lp[0][1]
-                            l["points"][1][0] = lp[0][2]
-                            l["points"][1][1] = lp[0][3]
+                            newLP = {"points":[[None]*2, [None]*2]}
+                            newLP["points"][0][0] = lp[0][0]
+                            newLP["points"][0][1] = lp[0][1]
+                            newLP["points"][1][0] = lp[0][2]
+                            newLP["points"][1][1] = lp[0][3]
+                            l.update(newLP)
                         # convert to albumentations format
                         if labelSaveFormat == "albumentations":
                             newLabels.append(
