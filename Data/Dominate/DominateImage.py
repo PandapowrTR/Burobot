@@ -112,7 +112,8 @@ def findDuplicateImages(path):
     allFiles = []
     for root, dirs, files in os.walk(path):
         for file in files:
-            allFiles.append(os.path.join(root, file))
+            if file.lower().endswith((".jpg", ".png", ".jpeg")):
+                allFiles.append(os.path.join(root, file))
 
     hashDict = {}
     duplicateFiles = []
@@ -139,7 +140,6 @@ def deleteDuplicateImages(path):
     Returns:
         int: The number of deleted duplicate image files.
     """
-    BurobotOutput.printBurobot()
     duplicateFiles = findDuplicateImages(path)
     deletedCount = 0
     for filePath in duplicateFiles:
