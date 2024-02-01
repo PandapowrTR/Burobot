@@ -3,7 +3,6 @@ import os, gc, sys, threading, time, cv2, shutil, random, json
 import albumentations as alb
 from PIL import Image
 import numpy as np
-from skimage.metrics import structural_similarity
 import imagehash
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
