@@ -4,8 +4,10 @@ sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Bur
 from PIL import Image
 import numpy as np
 import albumentations as alb
+from concurrent.futures import ThreadPoolExecutor
 from Burobot.tools import BurobotOutput
 from Burobot.Data.Dominate.DominateImage import *  # type: ignore
+from Burobot.Data.Dominate.DominateLabel import *
 
 
 def splitDataToTxt(
@@ -184,41 +186,91 @@ def deleteAloneData(dataPath: str, labelsPath: str = None):  # type: ignore
             os.remove(labelFiles[0][i])
 
 
-def deleteSimilarImgs(path, p: float = 0.9):
+def deleteSimilarDetections(
+    dataPath, labelsPath, labelFormat="albumentations", p: float = 0.9
+):
     """
-    Delete images that are similar to each other within a given directory.
+    Delete detections that are similar to each other within a given directory.
 
     Args:
-        path (str): The path to the directory containing the images.
+        dataPath (str): The path to the directory containing the images.
+        labelsPath (str): The path to the directiory containing the labels.
+        labelFormat (str): The format of label values(albumentations(default), yolo, pascal_voc, coco)
         p (float, optional): The similarity threshold to consider images as similar. Default is 0.9.
 
     Returns:
-        int: The number of deleted similar image files.
+        int: The number of deleted similar detection files.
     """
 
     def processFile(file1):
         global deletedCount
         for file2 in files:
-            if file1 != file2 and str(file1).endswith((".jpg", ".png", ".jpeg")) and str(file2).endswith((".jpg", ".png", ".jpeg")):
+            if (
+                file1 != file2
+                and str(file1).endswith((".jpg", ".png", ".jpeg"))
+                and str(file2).endswith((".jpg", ".png", ".jpeg"))
+            ):
                 try:
-                    if imgAreSimilar(os.path.join(root, file1), os.path.join(root, file2), p):
+                    if imgAreSimilar(
+                        os.path.join(root, file1), os.path.join(root, file2), p
+                    ):
                         os.remove(os.path.join(root, file2))
                         deletedCount += 1
                         print(f"Deleted {file2} 🗑️")
                 except:
                     pass
+        os.remove(file1)
+
     deletedCount = 0
     prog = 0
-    for root, _, files in os.walk(path):
-        threads = []
+    labels = {}
+    for root, _, files in os.walk(labelsPath):
         for file in files:
-            thread = threading.Thread(target=processFile, args=(file, ))
-            thread.start()
-            threads.append(thread)
-            prog += 1
-            print("progress: " + str(((prog / len(files)) * 100)) + "%\r", end="")
-        for t in threads:
-            t.join()
+            if file.lower().endswith((".json")):
+                with open(os.path.join(root, file)) as j:
+                    labels.update({file: json.load(j)})
+    for root, _, files in os.walk(dataPath):
+        threads = []
+        maxThreads = 10
+        with ThreadPoolExecutor(maxThreads) as executor:
+            for file in files:
+                if file.lower().endswith((".png", ".jpeg", ".jpg")):
+                    label = labels[".".join(file.split(".")[:-1]) + ".json"]
+                    for shape in label["shapes"]:
+                        points = shape["points"]
+                        if len(points) == 1:
+                            points = [
+                                points[0][0],
+                                points[0][1],
+                                points[0][2],
+                                points[0][3],
+                            ]
+                        else:
+                            points = [
+                                points[0][0],
+                                points[0][1],
+                                points[1][0],
+                                points[1][1],
+                            ]
+                        imgHeight = label["imageHeight"]
+                        imgWidth = label["imageWidth"]
+                        img = cv2.imread(os.path.join(root, file))
+                        points = ObjectDetection.convertLabelPoints(points, labelFormat, "pascal_voc", imgWidth, imgHeight)
+                        x1, y1, x2, y2 = points
+                        img = img[y1:y2, x1:x2]
+                        file = os.path.join(root, "temp-" + file)
+                        cv2.imshow("a", img)
+                        cv2.waitKey(0)
+                        cv2.imwrite(file, img)
+                        future = executor.submit(processFile, file)
+                        threads.append(future)
+                        prog += 1
+                        print(
+                            "progress: " + str(((prog / len(files)) * 100)) + "%\r",
+                            end="",
+                        )
+    for t in threads:
+        t.result()
     return deletedCount
 
 
@@ -468,7 +520,7 @@ class Augmentation:
             labelsPath (str): The path to the directory containing the image labes (for object detection datas).
             augRate (list): A list containing an augmentation pipeline (albumentations.Compose) and the number of augmentations per image.
             saveToPath (str): The path where augmented images will be saved.
-            labelSaveFormat (str): The option for label save format. Available formats: albumentations(default), yolo, pascal_voc, coco
+            labelSaveFormat (str): The option for label save format (your format must be pascal_voc). Available formats: albumentations(default), yolo, pascal_voc, coco
             equlizeClasses (bool): The option for equlize class count. Default is True.
             similarity (float, optional): Similarity threshold for deleting similar images. To disable enter under 0 or None. Default is 0.9.
         """
@@ -523,57 +575,21 @@ class Augmentation:
                     for l in copyLabels["shapes"].copy():
                         if len(l["points"]) == 1:
                             lp = l["points"].copy()
-                            newLP = {"points":[[None]*2, [None]*2]}
+                            newLP = {"points": [[None] * 2, [None] * 2]}
                             newLP["points"][0][0] = lp[0][0]
                             newLP["points"][0][1] = lp[0][1]
                             newLP["points"][1][0] = lp[0][2]
                             newLP["points"][1][1] = lp[0][3]
                             l.update(newLP)
-                        # convert to albumentations format
-                        if labelSaveFormat == "albumentations":
-                            newLabels.append(
-                                np.divide(
-                                    [
-                                        l["points"][0][0],
-                                        l["points"][0][1],
-                                        l["points"][1][0],
-                                        l["points"][1][1],
-                                    ],
-                                    [imgWidth, imgHeight, imgWidth, imgHeight],
-                                )
+                        newLabels.append(
+                            ObjectDetection.convertLabelPoints(
+                                l["points"],
+                                "pascal_voc",
+                                labelSaveFormat,
+                                imgWidth,
+                                imgHeight,
                             )
-                        # Convert to yolo format
-                        elif labelSaveFormat == "yolo":
-                            xCenter = (l["points"][0][0] + l["points"][1][0]) / (
-                                2 * imgWidth
-                            )
-                            yCenter = (l["points"][0][1] + l["points"][1][1]) / (
-                                2 * imgHeight
-                            )
-                            width = (
-                                abs(l["points"][1][0] - l["points"][0][0]) / imgWidth
-                            )
-                            height = (
-                                abs(l["points"][1][1] - l["points"][0][1]) / imgHeight
-                            )
-
-                            newLabels.append([xCenter, yCenter, width, height])
-                        # Convert to pascal_voc format
-                        elif labelSaveFormat == "pascal_voc":
-                            xmin = min(l["points"][0][0], l["points"][1][0])
-                            ymin = min(l["points"][0][1], l["points"][1][1])
-                            xmax = max(l["points"][0][0], l["points"][1][0])
-                            ymax = max(l["points"][0][1], l["points"][1][1])
-
-                            newLabels.append([xmin, ymin, xmax, ymax])
-                        # Convert to coco format
-                        elif labelSaveFormat == "coco":
-                            xmin = min(l["points"][0][0], l["points"][1][0])
-                            ymin = min(l["points"][0][1], l["points"][1][1])
-                            width = abs(l["points"][1][0] - l["points"][0][0])
-                            height = abs(l["points"][1][1] - l["points"][0][1])
-
-                            newLabels.append([xmin, ymin, width, height])
+                        )
                         classLabels.append(l["label"])
                     labels = newLabels
                     for li, l in enumerate(labels.copy()):
@@ -595,6 +611,8 @@ class Augmentation:
                             )
 
                             augmentedImage = Image.fromarray(augmentedData["image"])
+                            copyLabels["imageHeight"] = augmentedImage.height
+                            copyLabels["imageWidth"] = augmentedImage.width
                             uu = str(uuid.uuid1())
                             savePath = os.path.join(saveToPath)
                             augmentedImage.save(
@@ -614,6 +632,7 @@ class Augmentation:
                                     .replace(".JPG", ".json"),
                                 ),
                                 "w",
+                                encoding="utf-8",
                             ) as label_json:
                                 for lab in range(len(augmentedLabels)):
                                     copyLabels["shapes"][lab][
@@ -647,7 +666,9 @@ class Augmentation:
                 BurobotOutput.clearAndMemoryTo()
                 BurobotOutput.printBurobot()
                 print(f"🔄 Deleting {similarity*100}% similar or more images 🔍🧐")
-                deleteSimilarImgs(saveToPath, similarity)
+                deleteSimilarDetections(
+                    saveToPath, saveToPath, labelSaveFormat, similarity
+                )
             except:
                 pass
         if equlizeClasses:

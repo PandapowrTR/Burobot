@@ -1,10 +1,12 @@
 import sys, os, json
+import numpy as np
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 
 
 class ObjectDetection:
-    def convertAlbumentationsLabelsToYolo(labelsPath: str):
+    @staticmethod
+    def convertAllLabelPoints(labelsPath: str, currentType, targetType):
         if not os.path.exists(labelsPath):
             raise FileNotFoundError("Can't find path 🤷\nlabelsPath:" + str(labelsPath))
 
@@ -39,16 +41,12 @@ class ObjectDetection:
                         for corr in corrs:
                             labelName = corr["label"]
                             classIndex = classLabels.index(labelName)
-                            corr = corr["points"][0]
-                            if len(corr) == 2:
-                                corr = corr["points"][0] + corr["points"][1]
-                            xMin, yMin, xMax, yMax = corr[0], corr[1], corr[2], corr[3]
-                            xCenter = (xMin + xMax) / 2.0
-                            yCenter = (yMin + yMax) / 2.0
-                            width = xMax - xMin
-                            height = yMax - yMin
 
-                            yoloLabel = [classIndex, xCenter, yCenter, width, height]
+                            yoloLabel = [
+                                classIndex
+                            ] + ObjectDetection.convertLabelPoints(
+                                corr, currentType, targetType, imgWidth, imgHeight
+                            )
                             yoloLabelList.append(yoloLabel)
 
                         yoloTxtFilePath = os.path.join(
@@ -64,9 +62,9 @@ class ObjectDetection:
                                     + end
                                 )
 
-                    # JSON dosyasını silin
                     os.remove(os.path.join(root, file))
 
+    @staticmethod
     def splitLabelsToTxt(
         labelsPath: str,
         saveToPath: str,
@@ -121,6 +119,162 @@ class ObjectDetection:
             val += v + "\n"
         with open(os.path.join(saveToPath, "val.txt"), "w") as valFile:
             valFile.write(val.replace("\\", "/"))
+
+    @staticmethod
+    def convertLabelPoints(
+        points, currentType, targetType, imgWidth=None, imgHeight=None
+    ):
+        """Converts annotation labels between different formats.
+
+        :points (list): List of annotation points or information.
+        :currentType (str): Current annotation format (e.g., 'pascal_voc', 'yolo', 'albumentations', 'coco').
+        :targetType (str): Target annotation format.
+        :imgWidth (int): The image width to use if required in the conversion process.
+        :imgHeight (int): The image height to use if required in the conversion process.
+
+        Returns:
+            list: Converted annotation points in the target format.
+        """
+        if len(points) == 1:
+            points = [points[0][0], points[0][1], points[0][2], points[0][3]]
+        elif len(points) == 2:
+            points = [points[0][0], points[0][1], points[1][0], points[1][1]]
+        if currentType == targetType:
+            return points
+
+        if currentType == "pascal_voc":
+            # convert to albumentations format
+            if targetType == "albumentations":
+                return np.divide(
+                    [
+                        points[0],
+                        points[1],
+                        points[2],
+                        points[3],
+                    ],
+                    [imgWidth, imgHeight, imgWidth, imgHeight],
+                )
+            # Convert to yolo format
+            elif targetType == "yolo":
+                xCenter = (points[0] + points[2]) / (2 * imgWidth)
+                yCenter = (points[1] + points[3]) / (2 * imgHeight)
+                width = abs(points[2] - points[0]) / imgWidth
+                height = abs(points[3] - points[1]) / imgHeight
+
+                return [xCenter, yCenter, width, height]
+            # Convert to coco format
+            elif targetType == "coco":
+                xmin, ymin, xmax, ymax = points
+                x = xmin
+                y = ymin
+                width = xmax - xmin
+                height = ymax - ymin
+
+                return [x, y, width, height]
+
+            else:
+                raise ValueError(
+                    f"Conversion from {currentType} to {targetType} is not supported."
+                )
+
+        elif currentType == "yolo":
+            if targetType == "pascal_voc":
+                xCenter, yCenter, width, height = points
+                xMin = int((xCenter - width / 2) * imgWidth)
+                yMin = int((yCenter - height / 2) * imgHeight)
+                xMax = int((xCenter + width / 2) * imgWidth)
+                yMax = int((yCenter + height / 2) * imgHeight)
+                return [xMin, yMin, xMax, yMax]
+
+            elif targetType == "albumentations":
+                points = ObjectDetection.convertLabelPoints(
+                    points, currentType, "pascal_voc", imgWidth, imgHeight
+                )
+                return ObjectDetection.convertLabelPoints(
+                    points, "pascal_voc", targetType, imgWidth, imgHeight
+                )
+
+            elif targetType == "coco":
+                xCenter, yCenter, width, height = points
+
+                xMin = int((xCenter - width / 2) * imgWidth)
+                yMin = int((yCenter - height / 2) * imgHeight)
+                cocoWidth = int(width * imgWidth)
+                cocoHeight = int(height * imgHeight)
+
+                return [xMin, yMin, cocoWidth, cocoHeight]
+
+            else:
+                raise ValueError(
+                    f"Conversion from {currentType} to {targetType} is not supported."
+                )
+
+        elif currentType == "albumentations":
+            if targetType == "pascal_voc":
+                xMin, yMin, xMax, yMax = points
+                return [
+                    xMin * imgWidth,
+                    yMin * imgHeight,
+                    xMax * imgWidth,
+                    yMax * imgHeight,
+                ]
+
+            elif targetType == "yolo":
+                points = ObjectDetection.convertLabelPoints(
+                    points, currentType, "pascal_voc", imgWidth, imgHeight
+                )
+                return ObjectDetection.convertLabelPoints(
+                    points, "pascal_voc", targetType, imgWidth, imgHeight
+                )
+
+            elif targetType == "coco":
+                points = ObjectDetection.convertLabelPoints(
+                    points, currentType, "pascal_voc", imgWidth, imgHeight
+                )
+                return ObjectDetection.convertLabelPoints(
+                    points, "pascal_voc", targetType, imgWidth, imgHeight
+                )
+
+            else:
+                raise ValueError(
+                    f"Conversion from {currentType} to {targetType} is not supported."
+                )
+
+        elif currentType == "coco":
+            if targetType == "pascal_voc":
+                xmin, ymin, width, height = points
+
+                xmax = xmin + width
+                ymax = ymin + height
+
+                return [xmin, ymin, xmax, ymax]
+
+            elif targetType == "yolo":
+                points = ObjectDetection.convertLabelPoints(
+                    points, currentType, "pascal_voc", imgWidth, imgHeight
+                )
+                return ObjectDetection.convertLabelPoints(
+                    points, "pascal_voc", targetType, imgWidth, imgHeight
+                )
+
+            elif targetType == "albumentations":
+
+                points = ObjectDetection.convertLabelPoints(
+                    points, currentType, "pascal_voc", imgWidth, imgHeight
+                )
+                return ObjectDetection.convertLabelPoints(
+                    points, "pascal_voc", targetType, imgWidth, imgHeight
+                )
+
+            else:
+                raise ValueError(
+                    f"Conversion from {currentType} to {targetType} is not supported."
+                )
+
+        else:
+            raise ValueError(f"Conversion from {currentType} is not supported.")
+
+        return points
 
 
 class NamedEntityRecognition:

@@ -1,9 +1,9 @@
 # BUROBOT
-import os, gc, sys, threading, time, cv2, shutil, random, json
+import os, gc, sys, threading, time, cv2, shutil, random, imagehash
 import albumentations as alb
 from PIL import Image
 import numpy as np
-import imagehash
+from concurrent.futures import ThreadPoolExecutor
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 from Burobot.tools import BurobotOutput
@@ -212,19 +212,14 @@ def deleteSimilarImgs(path, similarity: float = 0.9):
             )
 
     threads = []
-    for folder in os.listdir(path):
-        thread = threading.Thread(
-            target=deleteSimilarImagesInFolder,
-            args=(
-                folder,
-                updateProgress,
-            ),
-        )
-        threads.append(thread)
-        thread.start()
+    maxThread = 10
+    with ThreadPoolExecutor(maxThread) as executor:
+        for folder in os.listdir(path):
+            future = executor.submit(deleteSimilarImagesInFolder, folder, updateProgress)
+            threads.append(future)
 
-    for thread in threads:
-        thread.join()
+    for t in threads:
+        t.result()
 
     return deletedCount
 
