@@ -1,6 +1,6 @@
 # Burobot Beta Version History
-
-## 0.0.1 Beta - 20.09.2023
+## beginning 20.09.2023
+## 0.0.1 Beta - 02.02.2024
 - Initial beta release!
 
 ### Features
