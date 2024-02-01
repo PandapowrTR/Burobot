@@ -3,6 +3,8 @@ import os, gc, sys, threading, time, cv2, shutil, random, json
 import albumentations as alb
 from PIL import Image
 import numpy as np
+from skimage.metrics import structural_similarity
+import imagehash
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 from Burobot.tools import BurobotOutput
@@ -148,28 +150,16 @@ def deleteDuplicateImages(path):
     return deletedCount
 
 
-# Function to check if two images are similar
 def imgAreSimilar(img1, img2, similarity: float = 0.9, returnSimilarity: bool = False):
-    """
-    Check if two images are similar based on their content.
+    img1 = Image.open(img1)
+    img2 = Image.open(img2)
+    hash1 = imagehash.average_hash(img1)
+    hash2 = imagehash.average_hash(img2)
 
-    Args:
-        img1 (str): Path to the first image file.
-        img2 (str): Path to the second image file.
-        similarity (float, optional): The similarity threshold to consider images as similar. Default is 0.9.
-
-    Returns:
-        bool: True if the images are similar, False otherwise.
-    """
-    from difflib import SequenceMatcher
-
-    with open(img1, "rb") as f1, open(img2, "rb") as f2:
-        content1 = f1.read()
-        content2 = f2.read()
-        similarityRatio = SequenceMatcher(None, content1, content2).ratio()
-        if not returnSimilarity:
-            return similarityRatio >= similarity
-        return similarityRatio >= similarity, similarityRatio
+    hammingDistance = 1- ((hash1 - hash2) / len(hash1.hash))
+    if not returnSimilarity:
+        return hammingDistance >= similarity
+    return hammingDistance >= similarity, hammingDistance
 
 
 # Function to delete similar images
@@ -195,7 +185,9 @@ def deleteSimilarImgs(path, similarity: float = 0.9):
         for mainImgIndex, mainImg in enumerate(images):
             for checkImg in images:
                 try:
-                    if os.path.join(path, folder, mainImg) != os.path.join(path, folder, checkImg):
+                    if os.path.join(path, folder, mainImg) != os.path.join(
+                        path, folder, checkImg
+                    ):
                         if imgAreSimilar(
                             os.path.join(path, folder, mainImg),
                             os.path.join(path, folder, checkImg),
@@ -533,6 +525,7 @@ class ImageAugmentation:
             ],
             5,
         ]
+
     @staticmethod
     def _augDataErr(dataPath: str, saveToPath: str, augRate):  # type: ignore
         import albumentations as alb
@@ -583,11 +576,12 @@ class ImageAugmentation:
             )
 
         gc.collect()
+
     @staticmethod
     def augmentateData(
         dataPath: str,  # type: ignore
         augRate: list,
-        saveToPath:str,
+        saveToPath: str,
         equlizeImgCount: bool = True,
         similarity: float = 0.9,
     ):

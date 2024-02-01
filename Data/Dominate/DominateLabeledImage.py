@@ -195,31 +195,30 @@ def deleteSimilarImgs(path, p: float = 0.9):
     Returns:
         int: The number of deleted similar image files.
     """
-    deletedCount = 0
 
-    BurobotOutput.printBurobot()
+    def processFile(file1):
+        global deletedCount
+        for file2 in files:
+            if file1 != file2 and str(file1).endswith((".jpg", ".png", ".jpeg")) and str(file2).endswith((".jpg", ".png", ".jpeg")):
+                try:
+                    if imgAreSimilar(os.path.join(root, file1), os.path.join(root, file2), p):
+                        os.remove(os.path.join(root, file2))
+                        deletedCount += 1
+                        print(f"Deleted {file2} 🗑️")
+                except:
+                    pass
+    deletedCount = 0
     prog = 0
     for root, _, files in os.walk(path):
+        threads = []
         for file in files:
-            if str(file).endswith((".jpg", ".png", ".jpeg")):
-                for root2, _, checkFiles in os.walk(path):
-                    for checkFile in checkFiles:
-                        try:
-                            if os.path.join(root2, checkFile) != os.path.join(
-                                root, file
-                            ):
-                                if imgAreSimilar(
-                                    os.path.join(root, file),
-                                    os.path.join(root2, checkFile),
-                                    p,
-                                ):
-                                    os.remove(os.path.join(root2, checkFile))
-                                    deletedCount += 1
-                                    print(f"Deleted {str(checkFile)} 🗑️")
-                        except:
-                            pass
+            thread = threading.Thread(target=processFile, args=(file, ))
+            thread.start()
+            threads.append(thread)
             prog += 1
             print("progress: " + str(((prog / len(files)) * 100)) + "%\r", end="")
+        for t in threads:
+            t.join()
     return deletedCount
 
 
