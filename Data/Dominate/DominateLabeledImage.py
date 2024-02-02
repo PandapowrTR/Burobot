@@ -1,4 +1,4 @@
-import os, shutil, os, gc, json, time, sys, uuid
+import os, shutil, os, gc, json, time, sys, uuid, copy
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 from PIL import Image
@@ -162,7 +162,7 @@ def deleteAloneData(dataPath: str, labelsPath: str = None):  # type: ignore
     for root, _, files in os.walk(labelsPath):
         for file in files:
             fileCount = str(file)
-            if fileCount.lower().endswith(("json", "txt")):
+            if fileCount.lower().endswith(("json", "txt", "xml")):
                 labelFiles[0].append(os.path.join(root, file))
                 labelFiles[1].append(".".join(file.split(".")[:-1]))
 
@@ -255,7 +255,9 @@ def deleteSimilarDetections(
                         imgHeight = label["imageHeight"]
                         imgWidth = label["imageWidth"]
                         img = cv2.imread(os.path.join(root, file))
-                        points = ObjectDetection.convertLabelPoints(points, labelFormat, "pascal_voc", imgWidth, imgHeight)
+                        points = ObjectDetection.convertLabelPoints(
+                            points, labelFormat, "pascal_voc", imgWidth, imgHeight
+                        )
                         x1, y1, x2, y2 = points
                         img = img[y1:y2, x1:x2]
                         file = os.path.join(root, "temp-" + file)
@@ -469,7 +471,8 @@ class Augmentation:
             5,
         ]
 
-    def _augDataErr(dataPath: str, labelsPath: str, saveToPath: str, augRate, labelSaveFormat: str):  # type: ignore
+    @staticmethod
+    def _augDataErr(dataPath: str, labelsPath: str, saveToPath: str, augRate, labelSaveFormat: str, currentLabelFormat: str):  # type: ignore
         import albumentations as alb
 
         if not os.path.exists(dataPath):
@@ -496,36 +499,38 @@ class Augmentation:
         for p in [dataPath, labelsPath]:
             if not os.path.exists(p):
                 raise FileNotFoundError("Can't find files 🤷\ndataPath: " + str(p))
-
-        if labelSaveFormat not in ["yolo", "albumentations", "pascal_voc", "coco"]:
+        lTypes = ["yolo", "albumentations", "pascal_voc", "coco"]
+        if labelSaveFormat not in lTypes or currentLabelFormat not in lTypes:
             raise ValueError(
-                "Your labelSaveFormat value is not valid. Please use one of this formats: albumentations, yolo, pascal_voc, coco"
+                "Your labelSaveFormat/currentLabelFormat value is not valid. Please use one of this formats: albumentations, yolo, pascal_voc, coco"
             )
         gc.collect()
 
+    @staticmethod
     def augData(
         dataPath: str,  # type: ignore
         labelsPath: str,  # type: ignore
         augRate: list,
-        saveToPath,
-        labelSaveFormat: str = "albumentations",
+        saveToPath: str,
+        currentLabelFormat: str = "pascal_voc",
+        labelSaveFormat: str = "pascal_voc",
         equlizeClasses: bool = True,
         similarity: float = 0.9,
     ):
         """
         Augment images in a directory using specified augmentation rates.
 
-        Args:
-            dataPath (str): The path to the directory containing the original images.
-            labelsPath (str): The path to the directory containing the image labes (for object detection datas).
-            augRate (list): A list containing an augmentation pipeline (albumentations.Compose) and the number of augmentations per image.
-            saveToPath (str): The path where augmented images will be saved.
-            labelSaveFormat (str): The option for label save format (your format must be pascal_voc). Available formats: albumentations(default), yolo, pascal_voc, coco
-            equlizeClasses (bool): The option for equlize class count. Default is True.
-            similarity (float, optional): Similarity threshold for deleting similar images. To disable enter under 0 or None. Default is 0.9.
+        :dataPath (str): The path to the directory containing the original images.
+        :labelsPath (str): The path to the directory containing the image labes (for object detection datas).
+        :augRate (list): A list containing an augmentation pipeline (albumentations.Compose) and the number of augmentations per image.
+        :saveToPath (str): The path where augmented images will be saved.
+        :currentLabelFormat (str): The current label format. Available formats: yolo, pascal_voc(default), coco
+        :labelSaveFormat (str): The option for label save format. Available formats: yolo, pascal_voc(default), coco
+        :equlizeClasses (bool): The option for equlize class count. Default is True.
+        :similarity (float): Similarity threshold for deleting similar images. To disable enter under 0 or None. Default is 0.9.
         """
         BurobotOutput.clearAndMemoryTo()
-        Augmentation._augDataErr(dataPath, labelsPath, saveToPath, augRate, labelSaveFormat)  # type: ignore
+        Augmentation._augDataErr(dataPath, labelsPath, saveToPath, augRate, labelSaveFormat, currentLabelFormat)  # type: ignore
 
         augRate[0] = alb.Compose(
             augRate[0],
@@ -543,15 +548,15 @@ class Augmentation:
         deleteAloneData(dataPath, labelsPath)
         BurobotOutput.clearAndMemoryTo()
         BurobotOutput.printBurobot()
-        labelsFiles = [[], []]
-        for root, _, files in os.walk(labelsPath):
-            for file in files:
-                fileCount = str(file)
-                if fileCount.endswith((".json")):
-                    labelsFiles[0].append(
-                        str(os.path.join(root, file))
-                    )  # all path and file
-                    labelsFiles[1].append(file)  # only file
+        labelsFiles, classes = ObjectDetection.loadAllLabels(
+            labelsPath, dataPath, currentLabelFormat, True
+        )
+        imgSavePath = os.path.join(saveToPath, "images")
+        if not os.path.exists(imgSavePath):
+            os.makedirs(imgSavePath)
+        labelSavePath = os.path.join(saveToPath, "labels")
+        if not os.path.exists(labelSavePath):
+            os.makedirs(labelSavePath)
         for root, _, files in os.walk(dataPath):
             for fi, file in enumerate(files):
                 print(f"\r🔄 Data augmentating {((fi+1)/len(files))*100}% 😎", end="")
@@ -562,29 +567,17 @@ class Augmentation:
                     labels = {}
                     classLabels = []
                     copyLabels = {}
-                    labelFile = labelsFiles[0][
-                        labelsFiles[1].index(".".join(file.split(".")[:-1]) + ".json")
-                    ]
+                    labels = labelsFiles[".".join(file.split(".")[:-1])]
 
                     imgWidth, imgHeight = image.size
-                    with open(labelFile, "r") as label_json:
-                        labels = json.load(label_json)
                     newLabels = []
                     classLabels = []
-                    copyLabels = dict(labels)
-                    for l in copyLabels["shapes"].copy():
-                        if len(l["points"]) == 1:
-                            lp = l["points"].copy()
-                            newLP = {"points": [[None] * 2, [None] * 2]}
-                            newLP["points"][0][0] = lp[0][0]
-                            newLP["points"][0][1] = lp[0][1]
-                            newLP["points"][1][0] = lp[0][2]
-                            newLP["points"][1][1] = lp[0][3]
-                            l.update(newLP)
+                    copyLabels = copy.deepcopy(labels)
+                    for l in copyLabels.copy():
                         newLabels.append(
                             ObjectDetection.convertLabelPoints(
-                                l["points"],
-                                "pascal_voc",
+                                l["bbox"],
+                                currentLabelFormat,
                                 labelSaveFormat,
                                 imgWidth,
                                 imgHeight,
@@ -592,18 +585,9 @@ class Augmentation:
                         )
                         classLabels.append(l["label"])
                     labels = newLabels
-                    for li, l in enumerate(labels.copy()):
-                        newL = []
-                        for l2 in l:
-                            newL.append(max(l2, 0))
-                        labels[li] = newL
                     del newLabels
                     for i in range(augRate[1]):
                         try:
-                            for l in labels:
-                                xMin, yMin, xMax, yMax = l[:4]
-                                if xMax <= xMin or yMax <= yMin:
-                                    raise ValueError("A")
                             augmentedData = augRate[0](
                                 image=np.array(image),
                                 bboxes=labels,
@@ -611,34 +595,38 @@ class Augmentation:
                             )
 
                             augmentedImage = Image.fromarray(augmentedData["image"])
-                            copyLabels["imageHeight"] = augmentedImage.height
-                            copyLabels["imageWidth"] = augmentedImage.width
+                            for cli in range(len(copyLabels)):
+                                copyLabels[cli]["imageHeight"] = augmentedImage.height
+                                copyLabels[cli]["imageWidth"] = augmentedImage.width
+                                copyLabels[cli]["labelFormat"] = labelSaveFormat
+                                if labelSaveFormat in ["yolo", "coco"]:
+                                    classNumbers = {}
+                                    for clsi, clsl in enumerate(classes):
+                                        classNumbers[clsl] = clsi
+                                    copyLabels[cli]["classNumbers"] = classNumbers
                             uu = str(uuid.uuid1())
-                            savePath = os.path.join(saveToPath)
                             augmentedImage.save(
-                                os.path.join(savePath, "aug-" + uu + "-" + file)
+                                os.path.join(imgSavePath, "aug-" + str(i) + "-" + file)
                             )
 
                             augmentedLabels = augmentedData["bboxes"]
-                            with open(
+                            for li, l in enumerate(augmentedLabels):
+                                if labelSaveFormat == "pascal_voc":
+                                    l = [int(x) for x in list(l)]
+                                copyLabels[li]["bbox"] = list(l)
+                            ObjectDetection.saveLabel(
                                 os.path.join(
-                                    saveToPath,
+                                    labelSavePath,
                                     "aug-"
-                                    + uu
+                                    + str(i)
                                     + "-"
-                                    + file.replace(".jpg", ".json")
-                                    .replace(".jpg", ".png")
-                                    .replace(".jpeg", ".json")
-                                    .replace(".JPG", ".json"),
+                                    + file.replace(".jpg", "")
+                                    .replace(".jpg", "")
+                                    .replace(".jpeg", "")
+                                    .replace(".JPG", ""),
                                 ),
-                                "w",
-                                encoding="utf-8",
-                            ) as label_json:
-                                for lab in range(len(augmentedLabels)):
-                                    copyLabels["shapes"][lab][
-                                        "points"
-                                    ] = augmentedLabels
-                                json.dump(copyLabels, label_json, indent=4)
+                                copyLabels,
+                            )
                         except:
                             continue
 
@@ -658,7 +646,7 @@ class Augmentation:
         BurobotOutput.printBurobot()
         print("🔄 Deleting alone data 🥺💔")
         time.sleep(1)
-        deleteAloneData(saveToPath)
+        deleteAloneData(imgSavePath, labelSavePath)
         BurobotOutput.clearAndMemoryTo()
 
         if similarity is not None and similarity > 0:
@@ -667,14 +655,14 @@ class Augmentation:
                 BurobotOutput.printBurobot()
                 print(f"🔄 Deleting {similarity*100}% similar or more images 🔍🧐")
                 deleteSimilarDetections(
-                    saveToPath, saveToPath, labelSaveFormat, similarity
+                    imgSavePath, labelSavePath, labelSaveFormat, similarity
                 )
             except:
                 pass
         if equlizeClasses:
             BurobotOutput.clearAndMemoryTo()
             BurobotOutput.printBurobot()
-            equlizeClassCount(dataPath, labelsPath)
+            equlizeClassCount(imgSavePath, labelSavePath)
 
         BurobotOutput.clearAndMemoryTo()
         BurobotOutput.printBurobot()
