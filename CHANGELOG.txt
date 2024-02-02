@@ -12,3 +12,11 @@
 
 ### NOTE
 As this is the initial beta release, there might be some missing features and possible bugs. We will continue to work on enhancing the user experience. Your feedback is invaluable to us, so please don't hesitate to share your thoughts! We look forward to improving your experience further with future updates.
+
+## 0.0.2 Beta - 02.02.2024
+Features:
+- Transformations between pascal_voc, coco, and yolo labels.
+- Methods convertAllLabelFiles and convertAllLabelPoints for transforming multiple label data for convenience.
+- Methods (loadLabel, saveLabel, loadAllLabels) for loading and saving labels of any type.
+- Data augmentation with desired labels and saving in the preferred format.
+- Various bug fixes.
