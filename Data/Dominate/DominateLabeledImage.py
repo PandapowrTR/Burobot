@@ -1,4 +1,4 @@
-import os, shutil, os, gc, json, time, sys, uuid, copy
+import os, shutil, os, gc, json, time, sys, uuid, copy, cv2
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 from PIL import Image
@@ -6,8 +6,8 @@ import numpy as np
 import albumentations as alb
 from concurrent.futures import ThreadPoolExecutor
 from Burobot.tools import BurobotOutput
-from Burobot.Data.Dominate.DominateImage import *  # type: ignore
-from Burobot.Data.Dominate.DominateLabel import *
+from Burobot.Data.Dominate.DominateImage import imgAreSimilar, deleteDuplicateImages
+from Burobot.Data.Dominate.DominateLabel import ObjectDetection
 
 
 def splitDataToTxt(
@@ -276,7 +276,7 @@ def deleteSimilarDetections(
     return deletedCount
 
 
-def countClasses(dataPath: str, labelsPath: str = None):
+def countClasses(dataPath: str, labelFormat, labelsPath: str = None):
     """return classes, images, labels"""
     if not os.path.exists(dataPath):
         raise FileNotFoundError("Can't find folder 🤷\n dataPath: " + str(dataPath))
@@ -288,30 +288,40 @@ def countClasses(dataPath: str, labelsPath: str = None):
     for root, _, files in os.walk(labelsPath):
         for file in files:
             fileCount = str(file)
-            if fileCount.lower().endswith(("json")):
+            if fileCount.lower().endswith(("json", "txt", "xml")):
                 labels[file] = {}
                 labels[file]["root"] = root
                 labels[file]["file"] = file
     images = {}
+    imageWidth = 0
+    imageHeight = 0
     for root, _, files in os.walk(dataPath):
         for file in files:
             fileCount = str(file)
             if fileCount.lower().endswith(("jpg", "png", "jpeg")):
+                if imageWidth == 0:
+                    img = Image.open(os.path.join(root, file))
+                    imageWidth = img.width
+                    imageHeight = img.height
                 images[file] = {}
                 images[file]["root"] = root
                 images[file]["file"] = file
     classes = {}
     for _, value in labels.items():
-        with open(os.path.join(value["root"], value["file"]), "r") as f:
-            value = json.load(f)
-        for sh in value["shapes"]:
-            if sh["label"] not in list(classes.keys()):
-                classes[sh["label"]] = 0
-            classes[sh["label"]] += 1
+        label = ObjectDetection.loadLabel(
+            os.path.join(value["root"], value["file"]),
+            labelFormat,
+            imageWidth,
+            imageHeight,
+        )
+        for l in label:
+            if l["label"] not in list(classes.keys()):
+                classes[l["label"]] = 0
+            classes[l["label"]] += 1
     return classes, images, labels
 
 
-def equlizeClassCount(dataPath: str, labelsPath: str = None):
+def equlizeClassCount(dataPath: str, labelFormat, labelsPath: str = None):
     if not os.path.exists(dataPath):
         raise FileNotFoundError("Can't find folder 🤷\n dataPath: " + str(dataPath))
     if labelsPath is None:
@@ -319,29 +329,29 @@ def equlizeClassCount(dataPath: str, labelsPath: str = None):
     if not os.path.exists(labelsPath):
         raise FileNotFoundError("Can't find folder 🤷\n labelsPath: " + str(labelsPath))
 
-    classes, images, labels = countClasses(dataPath, labelsPath)
+    classes, images, labels = countClasses(dataPath, labelFormat,labelsPath)
+    img = images[list(images.keys())[0]]
+    img = Image.open(os.path.join(img["root"], img["file"]))
+    imageWidth = img.width
+    imageHeight = img.height
     minClass = min([x for x in list(classes.values())])
     for targetClass, clcount in classes.items():
         print("Equlizing classes 📊\r", end="")
         if clcount > minClass:
             target = int(clcount - minClass)
-            for labelFile in labels.values():
-                label = None
-                try:
-                    with open(
-                        os.path.join(labelFile["root"], labelFile["file"]), "r"
-                    ) as f:
-                        label = json.load(f)
-                except:
-                    continue
-                for sh in label["shapes"]:
-                    if sh["label"] == targetClass:
-                        label["shapes"].remove(sh)
-                        target -= 1
-                        if target == 0:
-                            break
-                if len(label["shapes"]) == 0:
-                    # remove label and image
+            for labelKey, labelFile in labels.copy().items():
+                label = ObjectDetection.loadLabel(
+                    os.path.join(labelFile["root"], labelFile["file"]),
+                    labelFormat,
+                    imageWidth,
+                    imageHeight,
+                )
+                for l in label.copy():
+                    if l["label"] == targetClass:
+                        label.remove(l)
+                    if target == 0:
+                        break
+                if len(label) == 0:
                     os.remove(os.path.join(labelFile["root"], labelFile["file"]))
                     for im in images.values():
                         if ".".join(im["file"].split(".")[:-1]) == ".".join(
@@ -349,12 +359,9 @@ def equlizeClassCount(dataPath: str, labelsPath: str = None):
                         ):
                             os.remove(os.path.join(im["root"], im["file"]))
                             break
+                    del labels[labelKey]
                 else:
-                    with open(
-                        os.path.join(labelFile["root"], labelFile["file"]), "w"
-                    ) as f:
-                        f.truncate()
-                        json.dump(label, f)
+                    ObjectDetection.saveLabel(os.path.join(labelFile["root"], ".".join(labelFile["file"].split(".")[:-1])), label)
                 if target == 0:
                     break
 
