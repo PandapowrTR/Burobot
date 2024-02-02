@@ -206,7 +206,7 @@ def deleteSimilarDetections(
         global deletedCount
         for file2 in files:
             if (
-                file1 != file2
+                file1.replace("temp-", "", 1) != file2
                 and str(file1).endswith((".jpg", ".png", ".jpeg"))
                 and str(file2).endswith((".jpg", ".png", ".jpeg"))
             ):
