@@ -202,26 +202,36 @@ def deleteSimilarDetections(
         int: The number of deleted similar detection files.
     """
 
-    def processFile(file1, files):
+    def processFile(root, orjFile, cutDetection, files, points):
         global deletedCount
         for file2 in files:
             if (
-                file1.replace("temp-", "", 1) != file2
-                and str(file1).endswith((".jpg", ".png", ".jpeg"))
+                orjFile != file2
+                and str(cutDetection).endswith((".jpg", ".png", ".jpeg"))
                 and str(file2).endswith((".jpg", ".png", ".jpeg"))
             ):
                 try:
+                    img = cv2.imread(os.path.join(root, file2))
+                    xmin, ymin, xmax, ymax = points
+                    img = img[ymin:ymax, xmin:xmax]
+                    img = cv2.resize(img, (100, 100))
+                    file2 = os.path.join(root, "temp-"+file2)
+                    cv2.imwrite(file2, img)
                     similar = imgAreSimilar(
-                        os.path.join(root, file1), os.path.join(root, file2), p
+                        os.path.join(root, cutDetection), file2, p
                     )
                     if similar:
-                        os.remove(os.path.join(root, file2))
+                        os.remove(os.path.join(root, orjFile))
                         deletedCount += 1
                         print(f"Deleted {file2} 🗑️")
                 except:
                     pass
+                try:
+                    os.remove(file2)
+                except:
+                    pass
         try:
-            os.remove(file1)
+            os.read(cutDetection)
         except:
             pass
 
@@ -265,9 +275,10 @@ def deleteSimilarDetections(
                         )
                         xmin, ymin, xmax, ymax = [int(p) for p in points]
                         img = img[ymin:ymax, xmin:xmax]
-                        f = os.path.join(root, "temp-" + file)
-                        cv2.imwrite(f, img)
-                        future = executor.submit(processFile, f, files)
+                        img = cv2.resize(img, (100, 100))
+                        cutDetection = os.path.join(root, "temp-" + file)
+                        cv2.imwrite(cutDetection, img)
+                        future = executor.submit(processFile, root, file, cutDetection, copy.deepcopy(files), [xmin, ymin, xmax, ymax])
                         threads.append(future)
                 prog += 1
                 print(
