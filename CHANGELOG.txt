@@ -20,3 +20,6 @@ Features:
 - Methods (loadLabel, saveLabel, loadAllLabels) for loading and saving labels of any type.
 - Data augmentation with desired labels and saving in the preferred format.
 - Various bug fixes.
+
+## 0.0.3 Beta - 02.02.2024
+Bugs in countClasses and equalizeClassCount methods have been fixed.
