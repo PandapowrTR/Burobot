@@ -155,7 +155,7 @@ def imgAreSimilar(img1, img2, similarity: float = 0.9, returnSimilarity: bool = 
     hash1 = imagehash.average_hash(img1)
     hash2 = imagehash.average_hash(img2)
 
-    hammingDistance = 1- ((hash1 - hash2) / len(hash1.hash))
+    hammingDistance = max((1 - ((hash1 - hash2) / len(hash1.hash))), 0)
     if not returnSimilarity:
         return hammingDistance >= similarity
     return hammingDistance >= similarity, hammingDistance

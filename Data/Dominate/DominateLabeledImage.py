@@ -187,7 +187,7 @@ def deleteAloneData(dataPath: str, labelsPath: str = None):  # type: ignore
 
 
 def deleteSimilarDetections(
-    dataPath, labelsPath, labelFormat="albumentations", p: float = 0.9
+    dataPath, labelsPath, labelFormat="pascal_voc", p: float = 0.9
 ):
     """
     Delete detections that are similar to each other within a given directory.
@@ -195,14 +195,14 @@ def deleteSimilarDetections(
     Args:
         dataPath (str): The path to the directory containing the images.
         labelsPath (str): The path to the directiory containing the labels.
-        labelFormat (str): The format of label values(albumentations(default), yolo, pascal_voc, coco)
+        labelFormat (str): The format of label values(yolo, pascal_voc(default), coco)
         p (float, optional): The similarity threshold to consider images as similar. Default is 0.9.
 
     Returns:
         int: The number of deleted similar detection files.
     """
 
-    def processFile(file1):
+    def processFile(file1, files):
         global deletedCount
         for file2 in files:
             if (
@@ -211,68 +211,72 @@ def deleteSimilarDetections(
                 and str(file2).endswith((".jpg", ".png", ".jpeg"))
             ):
                 try:
-                    if imgAreSimilar(
+                    similar = imgAreSimilar(
                         os.path.join(root, file1), os.path.join(root, file2), p
-                    ):
+                    )
+                    if similar:
                         os.remove(os.path.join(root, file2))
                         deletedCount += 1
                         print(f"Deleted {file2} 🗑️")
                 except:
                     pass
-        os.remove(file1)
+        try:
+            os.remove(file1)
+        except:
+            pass
 
+    imgHeight = 0
+    imgWidth = 0
+    for root, _, files in os.walk(dataPath):
+        for file in files:
+            if file.lower().endswith((".jpg", ".png", ".jpeg")):
+                img = Image.open(os.path.join(root, file))
+                imgHeight = img.height
+                imgWidth = img.width
+                break
+        break
     deletedCount = 0
-    prog = 0
     labels = {}
     for root, _, files in os.walk(labelsPath):
         for file in files:
-            if file.lower().endswith((".json")):
-                with open(os.path.join(root, file)) as j:
-                    labels.update({file: json.load(j)})
+            if file.lower().endswith((".json", ".xml", ".txt")):
+                labels.update(
+                    {
+                        ".".join(file.split(".")[:-1]): ObjectDetection.loadLabel(
+                            os.path.join(root, file), labelFormat, imgWidth, imgHeight
+                        )
+                    }
+                )
+    prog = 0
     for root, _, files in os.walk(dataPath):
         threads = []
         maxThreads = 10
         with ThreadPoolExecutor(maxThreads) as executor:
-            for file in files:
+            for file in files.copy():
                 if file.lower().endswith((".png", ".jpeg", ".jpg")):
-                    label = labels[".".join(file.split(".")[:-1]) + ".json"]
-                    for shape in label["shapes"]:
-                        points = shape["points"]
-                        if len(points) == 1:
-                            points = [
-                                points[0][0],
-                                points[0][1],
-                                points[0][2],
-                                points[0][3],
-                            ]
-                        else:
-                            points = [
-                                points[0][0],
-                                points[0][1],
-                                points[1][0],
-                                points[1][1],
-                            ]
-                        imgHeight = label["imageHeight"]
-                        imgWidth = label["imageWidth"]
+                    label = labels[".".join(file.split(".")[:-1])]
+                    for l in label:
                         img = cv2.imread(os.path.join(root, file))
+                        if img is None:
+                            continue
+                        points = l["bbox"]
                         points = ObjectDetection.convertLabelPoints(
                             points, labelFormat, "pascal_voc", imgWidth, imgHeight
                         )
-                        x1, y1, x2, y2 = points
-                        img = img[y1:y2, x1:x2]
-                        file = os.path.join(root, "temp-" + file)
-                        cv2.imshow("a", img)
-                        cv2.waitKey(0)
-                        cv2.imwrite(file, img)
-                        future = executor.submit(processFile, file)
+                        xmin, ymin, xmax, ymax = [int(p) for p in points]
+                        img = img[ymin:ymax, xmin:xmax]
+                        f = os.path.join(root, "temp-" + file)
+                        cv2.imwrite(f, img)
+                        future = executor.submit(processFile, f, files)
                         threads.append(future)
-                        prog += 1
-                        print(
-                            "progress: " + str(((prog / len(files)) * 100)) + "%\r",
-                            end="",
-                        )
+                prog += 1
+                print(
+                    "progress: " + str(((prog / len(files)) * 100)) + "%\r",
+                    end="",
+                )
     for t in threads:
         t.result()
+    deleteAloneData(dataPath, labelsPath)
     return deletedCount
 
 
@@ -329,7 +333,7 @@ def equlizeClassCount(dataPath: str, labelFormat, labelsPath: str = None):
     if not os.path.exists(labelsPath):
         raise FileNotFoundError("Can't find folder 🤷\n labelsPath: " + str(labelsPath))
 
-    classes, images, labels = countClasses(dataPath, labelFormat,labelsPath)
+    classes, images, labels = countClasses(dataPath, labelFormat, labelsPath)
     img = images[list(images.keys())[0]]
     img = Image.open(os.path.join(img["root"], img["file"]))
     imageWidth = img.width
@@ -361,7 +365,13 @@ def equlizeClassCount(dataPath: str, labelFormat, labelsPath: str = None):
                             break
                     del labels[labelKey]
                 else:
-                    ObjectDetection.saveLabel(os.path.join(labelFile["root"], ".".join(labelFile["file"].split(".")[:-1])), label)
+                    ObjectDetection.saveLabel(
+                        os.path.join(
+                            labelFile["root"],
+                            ".".join(labelFile["file"].split(".")[:-1]),
+                        ),
+                        label,
+                    )
                 if target == 0:
                     break
 
