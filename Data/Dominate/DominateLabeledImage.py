@@ -226,12 +226,8 @@ def deleteSimilarDetections(
                         print(f"Deleted {file2} 🗑️")
                 except:
                     pass
-                try:
-                    os.remove(file2)
-                except:
-                    pass
         try:
-            os.read(cutDetection)
+            os.remove(cutDetection)
         except:
             pass
 
