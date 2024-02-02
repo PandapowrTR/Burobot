@@ -23,3 +23,6 @@ Features:
 
 ## 0.0.3 Beta - 02.02.2024
 Bugs in countClasses and equalizeClassCount methods have been fixed.
+
+## 0.0.4 Beta - 02.02.2024
+Fixed deleteSimilarDetections method.
