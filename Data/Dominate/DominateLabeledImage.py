@@ -1,4 +1,6 @@
 import os, shutil, os, gc, threading, time, sys, uuid, copy, cv2, warnings
+import concurrent.futures
+
 warnings.warn("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -213,64 +215,76 @@ def deleteSimilarDetections(
             yield lst[start:end]
             start = end
 
-    def progressFiles(allFiles, files, labels, tempFolder, root, deletedFiles):
-        for file in allFiles:
-            if (
-                file.lower().endswith((".png", ".jpeg", ".jpg"))
-                and file not in deletedFiles
-            ):
-                try:
-                    label = labels[".".join(file.split(".")[:-1])]
-                except:
-                    continue
-                for l in label:
-                    img = cv2.imread(os.path.join(root, file))
-                    if img is None:
-                        continue
-                    points = l["bbox"]
-                    points = ObjectDetection.convertLabelPoints(
-                        points, labelFormat, "pascal_voc", imgWidth, imgHeight
-                    )
-                    xmin, ymin, xmax, ymax = [int(p) for p in points]
-                    img = img[ymin:ymax, xmin:xmax]
-                    img = cv2.resize(img, (100, 100))
-                    uu = str(uuid.uuid1())
-                    cutDetection = os.path.join(tempFolder, "temp-" + uu + file)
-                    cv2.imwrite(cutDetection, img)
-                    for checkFile in files.copy():
-                        if (
-                            checkFile.lower().endswith((".png", ".jpeg", ".jpg"))
-                            and checkFile != file
-                            and checkFile not in deletedFiles
-                        ):
-                            checkLabels = labels[".".join(file.split(".")[:-1])]
-                            for cl in checkLabels:
-                                checkImgPoints = cl["bbox"]
-                                checkImgPoints = ObjectDetection.convertLabelPoints(
-                                    checkImgPoints,
-                                    labelFormat,
-                                    "pascal_voc",
-                                    imgWidth,
-                                    imgHeight,
-                                )
-                                cxmin, cymin, cxmax, cymax = [
-                                    int(p) for p in checkImgPoints
-                                ]
-                                checkImg = cv2.imread(os.path.join(root, checkFile))
-                                checkImg = checkImg[cymin:cymax, cxmin:cxmax]
-                                checkImg = cv2.resize(checkImg, (100, 100))
-                                checkCutDetection = os.path.join(
-                                    tempFolder, "temp-" + checkFile
-                                )
-                                cv2.imwrite(checkCutDetection, checkImg)
-                                if imgAreSimilar(
-                                    cutDetection, checkCutDetection, maxSimilarity
-                                ):
-                                    os.remove(os.path.join(root, checkFile))
-                                    deletedFiles.append(checkFile)
-                                    os.remove(checkCutDetection)
-                                    break
-                    os.remove(cutDetection)
+    def processFile(args):
+        (
+            file,
+            root,
+            labels,
+            tempFolder,
+            imgWidth,
+            imgHeight,
+            maxSimilarity,
+            deletedFiles,
+            files,
+        ) = args
+
+        if (
+            file.lower().endswith((".png", ".jpeg", ".jpg"))
+            and file not in deletedFiles
+        ):
+            label = labels[".".join(file.split(".")[:-1])]
+
+            img = cv2.imread(os.path.join(root, file))
+            if img is None:
+                return
+
+            for l in label:
+                points = l["bbox"]
+                points = ObjectDetection.convertLabelPoints(
+                    points, labelFormat, "pascal_voc", imgWidth, imgHeight
+                )
+                xmin, ymin, xmax, ymax = [int(p) for p in points]
+                img = img[ymin:ymax, xmin:xmax]
+                img = cv2.resize(img, (100, 100))
+                uu = str(uuid.uuid1())
+                cutDetection = os.path.join(tempFolder, "temp-" + uu + file)
+                cv2.imwrite(cutDetection, img)
+
+                for checkFile in files.copy():
+                    if (
+                        checkFile.lower().endswith((".png", ".jpeg", ".jpg"))
+                        and checkFile != file
+                        and checkFile not in deletedFiles
+                    ):
+                        checkLabels = labels[".".join(file.split(".")[:-1])]
+                        for cl in checkLabels:
+                            checkImgPoints = cl["bbox"]
+                            checkImgPoints = ObjectDetection.convertLabelPoints(
+                                checkImgPoints,
+                                labelFormat,
+                                "pascal_voc",
+                                imgWidth,
+                                imgHeight,
+                            )
+                            cxmin, cymin, cxmax, cymax = [
+                                int(p) for p in checkImgPoints
+                            ]
+                            checkImg = cv2.imread(os.path.join(root, checkFile))
+                            checkImg = checkImg[cymin:cymax, cxmin:cxmax]
+                            checkImg = cv2.resize(checkImg, (100, 100))
+                            checkCutDetection = os.path.join(
+                                tempFolder, "temp-" + checkFile
+                            )
+                            cv2.imwrite(checkCutDetection, checkImg)
+                            if imgAreSimilar(
+                                cutDetection, checkCutDetection, maxSimilarity
+                            ):
+                                os.remove(os.path.join(root, checkFile))
+                                deletedFiles.append(checkFile)
+                                os.remove(checkCutDetection)
+                                break
+
+                os.remove(cutDetection)
 
     imgHeight = 0
     imgWidth = 0
@@ -300,30 +314,31 @@ def deleteSimilarDetections(
         pass
     print("Checking similar detections")
     deletedFiles = []
-    for root, _, files in os.walk(dataPath):
-        threadCount = 10
-        threads = []
-        for spFiles in chunkList(files.copy(), threadCount):
-            thread = threading.Thread(
-                target=progressFiles,
-                args=(
-                    files,
-                    spFiles,
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(
+            processFile,
+            [
+                (
+                    file,
+                    root,
                     labels,
                     tempFolder,
-                    root,
+                    imgWidth,
+                    imgHeight,
+                    maxSimilarity,
                     deletedFiles,
-                ),
-            )
-            thread.start()
-            threads.append(thread)
-
-        for t in threads:
-            t.join()
+                    files.copy(),
+                )
+                for root, _, files in os.walk(dataPath)
+                for file in files
+            ],
+        )
 
     for f in os.listdir(tempFolder):
         os.remove(os.path.join(tempFolder, f))
     os.rmdir(tempFolder)
+
     deleteAloneData(dataPath, labelsPath)
     return len(deletedFiles)
 
@@ -718,7 +733,7 @@ class Augmentation:
             BurobotOutput.clearAndMemoryTo()
             BurobotOutput.printBurobot()
             equlizeClassCount(imgSavePath, labelSavePath)
-            
+
         if maxSimilarity is not None and maxSimilarity > 0:
             try:
                 BurobotOutput.clearAndMemoryTo()
