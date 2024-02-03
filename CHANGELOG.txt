@@ -32,3 +32,6 @@ Fixed and optimized deleteSimilarDetections
 
 ## 0.0.6 Beta 03.02.2024
 deleteSimilarDetections section was changed to last operation in data augmentation
+
+## 0.0.7 Beta 03.02.2024
+optimized deleteSimilarDetections
