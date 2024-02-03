@@ -1,10 +1,9 @@
-import os, shutil, os, gc, json, time, sys, uuid, copy, cv2
+import os, shutil, os, gc, threading, time, sys, uuid, copy, cv2
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 from PIL import Image
 import numpy as np
 import albumentations as alb
-from concurrent.futures import ThreadPoolExecutor
 from Burobot.tools import BurobotOutput
 from Burobot.Data.Dominate.DominateImage import imgAreSimilar, deleteDuplicateImages
 from Burobot.Data.Dominate.DominateLabel import ObjectDetection
@@ -201,39 +200,19 @@ def deleteSimilarDetections(
     Returns:
         int: The number of deleted similar detection files.
     """
-    imgHeight = 0
-    imgWidth = 0
-    for root, _, files in os.walk(dataPath):
-        for file in files:
-            if file.lower().endswith((".jpg", ".png", ".jpeg")):
-                img = Image.open(os.path.join(root, file))
-                imgHeight = img.height
-                imgWidth = img.width
-                break
-        break
-    labels = {}
-    prog = 0
-    totalFiles = sum(1 for _ in os.walk(dataPath) for _ in files)
-    for root, _, files in os.walk(labelsPath):
-        for file in files:
-            if file.lower().endswith((".json", ".xml", ".txt")):
-                labels.update(
-                    {
-                        ".".join(file.split(".")[:-1]): ObjectDetection.loadLabel(
-                            os.path.join(root, file), labelFormat, imgWidth, imgHeight
-                        )
-                    }
-                )
-    tempFolder = os.path.join(dataPath, "tempFiles")
-    try:
-        os.mkdir(tempFolder)
-    except FileExistsError:
-        pass
-    deletedCount = 0
-    deletedFiles = []
-    print("Checking similar detections")
-    for root, _, files in os.walk(dataPath):
-        for file in files.copy():
+
+    def chunkList(lst, numChunks):
+        avgShunkSize = len(lst) // numChunks
+        remainder = len(lst) % numChunks
+        start = 0
+
+        for i in range(numChunks):
+            end = start + avgShunkSize + (1 if i < remainder else 0)
+            yield lst[start:end]
+            start = end
+
+    def progressFiles(allFiles, files, labels, tempFolder, root, deletedFiles):
+        for file in allFiles:
             if (
                 file.lower().endswith((".png", ".jpeg", ".jpg"))
                 and file not in deletedFiles
@@ -253,9 +232,9 @@ def deleteSimilarDetections(
                     xmin, ymin, xmax, ymax = [int(p) for p in points]
                     img = img[ymin:ymax, xmin:xmax]
                     img = cv2.resize(img, (100, 100))
-                    cutDetection = os.path.join(tempFolder, "temp-" + file)
+                    uu = str(uuid.uuid1())
+                    cutDetection = os.path.join(tempFolder, "temp-" + uu + file)
                     cv2.imwrite(cutDetection, img)
-                    prog += 1
                     for checkFile in files.copy():
                         if (
                             checkFile.lower().endswith((".png", ".jpeg", ".jpg"))
@@ -282,18 +261,69 @@ def deleteSimilarDetections(
                                     tempFolder, "temp-" + checkFile
                                 )
                                 cv2.imwrite(checkCutDetection, checkImg)
-                                if imgAreSimilar(cutDetection, checkCutDetection, maxSimilarity):
+                                if imgAreSimilar(
+                                    cutDetection, checkCutDetection, maxSimilarity
+                                ):
                                     os.remove(os.path.join(root, checkFile))
                                     deletedFiles.append(checkFile)
-                                    deletedCount += 1
                                     os.remove(checkCutDetection)
                                     break
                     os.remove(cutDetection)
+
+    imgHeight = 0
+    imgWidth = 0
+    for root, _, files in os.walk(dataPath):
+        for file in files:
+            if file.lower().endswith((".jpg", ".png", ".jpeg")):
+                img = Image.open(os.path.join(root, file))
+                imgHeight = img.height
+                imgWidth = img.width
+                break
+        break
+    labels = {}
+    for root, _, files in os.walk(labelsPath):
+        for file in files:
+            if file.lower().endswith((".json", ".xml", ".txt")):
+                labels.update(
+                    {
+                        ".".join(file.split(".")[:-1]): ObjectDetection.loadLabel(
+                            os.path.join(root, file), labelFormat, imgWidth, imgHeight
+                        )
+                    }
+                )
+    tempFolder = os.path.join(dataPath, "tempFiles")
+    try:
+        os.mkdir(tempFolder)
+    except FileExistsError:
+        pass
+    print("Checking similar detections")
+    deletedFiles = []
+    for root, _, files in os.walk(dataPath):
+        threadCount = 10
+        threads = []
+        for spFiles in chunkList(files.copy(), threadCount):
+            thread = threading.Thread(
+                target=progressFiles,
+                args=(
+                    files,
+                    spFiles,
+                    labels,
+                    tempFolder,
+                    root,
+                    deletedFiles,
+                ),
+            )
+            thread.start()
+            threads.append(thread)
+
+        for t in threads:
+            t.join()
+
     for f in os.listdir(tempFolder):
         os.remove(os.path.join(tempFolder, f))
-    os.removedirs(tempFolder)
+    os.rmdir(tempFolder)
     deleteAloneData(dataPath, labelsPath)
-    return deletedCount
+    return len(deletedFiles)
 
 
 def countClasses(dataPath: str, labelFormat, labelsPath: str = None):
