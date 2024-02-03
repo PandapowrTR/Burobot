@@ -249,7 +249,7 @@ def deleteSimilarDetections(
                 uu = str(uuid.uuid1())
                 cutDetection = os.path.join(tempFolder, "temp-" + uu + file)
                 cv2.imwrite(cutDetection, img)
-
+                foundSimilar = False
                 for checkFile in files.copy():
                     if (
                         checkFile.lower().endswith((".png", ".jpeg", ".jpg"))
@@ -279,6 +279,10 @@ def deleteSimilarDetections(
                             if imgAreSimilar(
                                 cutDetection, checkCutDetection, maxSimilarity
                             ):
+                                if not foundSimilar:
+                                    foundSimilar = True
+                                else:
+                                    continue
                                 os.remove(os.path.join(root, checkFile))
                                 deletedFiles.append(checkFile)
                                 os.remove(checkCutDetection)
