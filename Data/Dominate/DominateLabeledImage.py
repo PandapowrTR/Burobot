@@ -201,40 +201,6 @@ def deleteSimilarDetections(
     Returns:
         int: The number of deleted similar detection files.
     """
-
-    def processFile(root, orjFile, cutDetection, files, points):
-        global deletedCount
-        for file2 in files:
-            if (
-                orjFile != file2
-                and str(cutDetection).endswith((".jpg", ".png", ".jpeg"))
-                and str(file2).endswith((".jpg", ".png", ".jpeg"))
-            ):
-                try:
-                    img = cv2.imread(os.path.join(root, file2))
-                    xmin, ymin, xmax, ymax = points
-                    img = img[ymin:ymax, xmin:xmax]
-                    img = cv2.resize(img, (100, 100))
-                    file2 = os.path.join(root, "temp-"+file2)
-                    cv2.imwrite(file2, img)
-                    similar = imgAreSimilar(
-                        os.path.join(root, cutDetection), file2, p
-                    )
-                    if similar:
-                        os.remove(os.path.join(root, orjFile))
-                        deletedCount += 1
-                        print(f"Deleted {file2} 🗑️")
-                except:
-                    pass
-                try:
-                    os.remove(file2)
-                except:
-                    pass
-        try:
-            os.remove(cutDetection)
-        except:
-            pass
-
     imgHeight = 0
     imgWidth = 0
     for root, _, files in os.walk(dataPath):
@@ -245,8 +211,9 @@ def deleteSimilarDetections(
                 imgWidth = img.width
                 break
         break
-    deletedCount = 0
     labels = {}
+    prog = 0
+    totalFiles = sum(1 for _ in os.walk(dataPath) for _ in files)
     for root, _, files in os.walk(labelsPath):
         for file in files:
             if file.lower().endswith((".json", ".xml", ".txt")):
@@ -257,36 +224,74 @@ def deleteSimilarDetections(
                         )
                     }
                 )
-    prog = 0
+    tempFolder = os.path.join(dataPath, "tempFiles")
+    try:
+        os.mkdir(tempFolder)
+    except FileExistsError:
+        pass
+    deletedCount = 0
+    deletedFiles = []
+    print("Checking similar detections")
     for root, _, files in os.walk(dataPath):
-        threads = []
-        maxThreads = 10
-        with ThreadPoolExecutor(maxThreads) as executor:
-            for file in files.copy():
-                if file.lower().endswith((".png", ".jpeg", ".jpg")):
+        for file in files.copy():
+            if (
+                file.lower().endswith((".png", ".jpeg", ".jpg"))
+                and file not in deletedFiles
+            ):
+                try:
                     label = labels[".".join(file.split(".")[:-1])]
-                    for l in label:
-                        img = cv2.imread(os.path.join(root, file))
-                        if img is None:
-                            continue
-                        points = l["bbox"]
-                        points = ObjectDetection.convertLabelPoints(
-                            points, labelFormat, "pascal_voc", imgWidth, imgHeight
-                        )
-                        xmin, ymin, xmax, ymax = [int(p) for p in points]
-                        img = img[ymin:ymax, xmin:xmax]
-                        img = cv2.resize(img, (100, 100))
-                        cutDetection = os.path.join(root, "temp-" + file)
-                        cv2.imwrite(cutDetection, img)
-                        future = executor.submit(processFile, root, file, cutDetection, copy.deepcopy(files), [xmin, ymin, xmax, ymax])
-                        threads.append(future)
-                prog += 1
-                print(
-                    "progress: " + str(((prog / len(files)) * 100)) + "%\r",
-                    end="",
-                )
-    for t in threads:
-        t.result()
+                except:
+                    continue
+                for l in label:
+                    img = cv2.imread(os.path.join(root, file))
+                    if img is None:
+                        continue
+                    points = l["bbox"]
+                    points = ObjectDetection.convertLabelPoints(
+                        points, labelFormat, "pascal_voc", imgWidth, imgHeight
+                    )
+                    xmin, ymin, xmax, ymax = [int(p) for p in points]
+                    img = img[ymin:ymax, xmin:xmax]
+                    img = cv2.resize(img, (100, 100))
+                    cutDetection = os.path.join(tempFolder, "temp-" + file)
+                    cv2.imwrite(cutDetection, img)
+                    prog += 1
+                    for checkFile in files.copy():
+                        if (
+                            checkFile.lower().endswith((".png", ".jpeg", ".jpg"))
+                            and checkFile != file
+                            and checkFile not in deletedFiles
+                        ):
+                            checkLabels = labels[".".join(file.split(".")[:-1])]
+                            for cl in checkLabels:
+                                checkImgPoints = cl["bbox"]
+                                checkImgPoints = ObjectDetection.convertLabelPoints(
+                                    checkImgPoints,
+                                    labelFormat,
+                                    "pascal_voc",
+                                    imgWidth,
+                                    imgHeight,
+                                )
+                                cxmin, cymin, cxmax, cymax = [
+                                    int(p) for p in checkImgPoints
+                                ]
+                                checkImg = cv2.imread(os.path.join(root, checkFile))
+                                checkImg = checkImg[cymin:cymax, cxmin:cxmax]
+                                checkImg = cv2.resize(checkImg, (100, 100))
+                                checkCutDetection = os.path.join(
+                                    tempFolder, "temp-" + checkFile
+                                )
+                                cv2.imwrite(checkCutDetection, checkImg)
+                                if imgAreSimilar(cutDetection, checkCutDetection, p):
+                                    os.remove(os.path.join(root, checkFile))
+                                    deletedFiles.append(checkFile)
+                                    deletedCount += 1
+                                    os.remove(checkCutDetection)
+                                    break
+                    os.remove(cutDetection)
+    for f in os.listdir(tempFolder):
+        os.remove(os.path.join(tempFolder, f))
+    os.removedirs(tempFolder)
     deleteAloneData(dataPath, labelsPath)
     return deletedCount
 
