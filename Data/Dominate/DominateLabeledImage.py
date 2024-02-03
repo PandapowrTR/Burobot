@@ -187,7 +187,7 @@ def deleteAloneData(dataPath: str, labelsPath: str = None):  # type: ignore
 
 
 def deleteSimilarDetections(
-    dataPath, labelsPath, labelFormat="pascal_voc", p: float = 0.9
+    dataPath, labelsPath, labelFormat="pascal_voc", maxSimilarity: float = 0.9
 ):
     """
     Delete detections that are similar to each other within a given directory.
@@ -196,7 +196,7 @@ def deleteSimilarDetections(
         dataPath (str): The path to the directory containing the images.
         labelsPath (str): The path to the directiory containing the labels.
         labelFormat (str): The format of label values(yolo, pascal_voc(default), coco)
-        p (float, optional): The similarity threshold to consider images as similar. Default is 0.9.
+        maxSimilarity (float, optional): The similarity threshold to consider images as similar. Default is 0.9.
 
     Returns:
         int: The number of deleted similar detection files.
@@ -282,7 +282,7 @@ def deleteSimilarDetections(
                                     tempFolder, "temp-" + checkFile
                                 )
                                 cv2.imwrite(checkCutDetection, checkImg)
-                                if imgAreSimilar(cutDetection, checkCutDetection, p):
+                                if imgAreSimilar(cutDetection, checkCutDetection, maxSimilarity):
                                     os.remove(os.path.join(root, checkFile))
                                     deletedFiles.append(checkFile)
                                     deletedCount += 1
@@ -548,7 +548,7 @@ class Augmentation:
         currentLabelFormat: str = "pascal_voc",
         labelSaveFormat: str = "pascal_voc",
         equlizeClasses: bool = True,
-        similarity: float = 0.9,
+        maxSimilarity: float = 0.9,
     ):
         """
         Augment images in a directory using specified augmentation rates.
@@ -560,7 +560,7 @@ class Augmentation:
         :currentLabelFormat (str): The current label format. Available formats: yolo, pascal_voc(default), coco
         :labelSaveFormat (str): The option for label save format. Available formats: yolo, pascal_voc(default), coco
         :equlizeClasses (bool): The option for equlize class count. Default is True.
-        :similarity (float): Similarity threshold for deleting similar images. To disable enter under 0 or None. Default is 0.9.
+        :maxSimilarity (float): Similarity threshold for deleting similar images. To disable enter under 0 or None. Default is 0.9.
         """
         BurobotOutput.clearAndMemoryTo()
         Augmentation._augDataErr(dataPath, labelsPath, saveToPath, augRate, labelSaveFormat, currentLabelFormat)  # type: ignore
@@ -682,13 +682,13 @@ class Augmentation:
         deleteAloneData(imgSavePath, labelSavePath)
         BurobotOutput.clearAndMemoryTo()
 
-        if similarity is not None and similarity > 0:
+        if maxSimilarity is not None and maxSimilarity > 0:
             try:
                 BurobotOutput.clearAndMemoryTo()
                 BurobotOutput.printBurobot()
-                print(f"🔄 Deleting {similarity*100}% similar or more images 🔍🧐")
+                print(f"🔄 Deleting {maxSimilarity*100}% similar or more images 🔍🧐")
                 deleteSimilarDetections(
-                    imgSavePath, labelSavePath, labelSaveFormat, similarity
+                    imgSavePath, labelSavePath, labelSaveFormat, maxSimilarity
                 )
             except:
                 pass
