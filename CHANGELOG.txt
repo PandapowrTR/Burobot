@@ -26,3 +26,6 @@ Bugs in countClasses and equalizeClassCount methods have been fixed.
 
 ## 0.0.4 Beta - 02.02.2024
 Fixed deleteSimilarDetections method.
+
+## 0.0.5 Beta 03.02.2024
+Fixed and optimized deleteSimilarDetections
