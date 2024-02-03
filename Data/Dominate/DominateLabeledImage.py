@@ -714,6 +714,11 @@ class Augmentation:
         deleteAloneData(imgSavePath, labelSavePath)
         BurobotOutput.clearAndMemoryTo()
 
+        if equlizeClasses:
+            BurobotOutput.clearAndMemoryTo()
+            BurobotOutput.printBurobot()
+            equlizeClassCount(imgSavePath, labelSavePath)
+            
         if maxSimilarity is not None and maxSimilarity > 0:
             try:
                 BurobotOutput.clearAndMemoryTo()
@@ -724,10 +729,6 @@ class Augmentation:
                 )
             except:
                 pass
-        if equlizeClasses:
-            BurobotOutput.clearAndMemoryTo()
-            BurobotOutput.printBurobot()
-            equlizeClassCount(imgSavePath, labelSavePath)
 
         BurobotOutput.clearAndMemoryTo()
         BurobotOutput.printBurobot()
