@@ -1,5 +1,6 @@
 import os, shutil, os, gc, threading, time, sys, uuid, copy, cv2, warnings
 warnings.warn("ignore")
+warnings.filterwarnings("ignore", category=UserWarning)
 
 sys.path.append(os.path.join(os.path.abspath(__file__).split("Burobot")[0], "Burobot"))
 from PIL import Image
