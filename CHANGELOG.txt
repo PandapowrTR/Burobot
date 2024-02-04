@@ -39,3 +39,6 @@ optimized deleteSimilarDetections
 ## 0.0.8 Beta 04.02.2024
 optimized deleteSimilarDetections
 Improved performance of deleteSimilarDetections function using threading. Warning! It has only been tested on the developer computer at the moment. Users may experience freezing problems when trying it on their own systems.
+
+## 0.0.9 Beta 04.02.2024
+fixed dict error on splitDataToFolders
