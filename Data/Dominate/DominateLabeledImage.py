@@ -227,58 +227,106 @@ def deleteSimilarDetections(
             img = cv2.imread(os.path.join(root, file))
             if img is None:
                 return
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = []
+                for l in label:
+                    future = executor.submit(processLabel, l, img, args)
+                    futures.append(future)
 
-            for l in label:
-                points = l["bbox"]
-                points = ObjectDetection.convertLabelPoints(
-                    points, labelFormat, "pascal_voc", imgWidth, imgHeight
+                concurrent.futures.wait(futures)
+
+    def processLabel(l, img, args):
+        (
+            file,
+            root,
+            labels,
+            tempFolder,
+            imgWidth,
+            imgHeight,
+            maxSimilarity,
+            deletedFiles,
+            files,
+        ) = args
+        points = l["bbox"]
+        points = ObjectDetection.convertLabelPoints(
+            points, labelFormat, "pascal_voc", imgWidth, imgHeight
+        )
+        xmin, ymin, xmax, ymax = [int(p) for p in points]
+        img = img[ymin:ymax, xmin:xmax]
+        img = cv2.resize(img, (100, 100))
+        uu = str(uuid.uuid1())
+        cutDetection = os.path.join(tempFolder, "temp-" + uu + file)
+        cv2.imwrite(cutDetection, img)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            cFileFutures = []
+            for checkFile in files.copy():
+                future = executor.submit(
+                    processCheckFile, checkFile, cutDetection, args
                 )
-                xmin, ymin, xmax, ymax = [int(p) for p in points]
-                img = img[ymin:ymax, xmin:xmax]
-                img = cv2.resize(img, (100, 100))
-                uu = str(uuid.uuid1())
-                cutDetection = os.path.join(tempFolder, "temp-" + uu + file)
-                cv2.imwrite(cutDetection, img)
-                foundSimilar = False
-                for checkFile in files.copy():
-                    if (
-                        checkFile.lower().endswith((".png", ".jpeg", ".jpg"))
-                        and checkFile != file
-                        and checkFile not in deletedFiles
-                    ):
-                        checkLabels = labels[".".join(file.split(".")[:-1])]
-                        for cl in checkLabels:
-                            checkImgPoints = cl["bbox"]
-                            checkImgPoints = ObjectDetection.convertLabelPoints(
-                                checkImgPoints,
-                                labelFormat,
-                                "pascal_voc",
-                                imgWidth,
-                                imgHeight,
-                            )
-                            cxmin, cymin, cxmax, cymax = [
-                                int(p) for p in checkImgPoints
-                            ]
-                            checkImg = cv2.imread(os.path.join(root, checkFile))
-                            checkImg = checkImg[cymin:cymax, cxmin:cxmax]
-                            checkImg = cv2.resize(checkImg, (100, 100))
-                            checkCutDetection = os.path.join(
-                                tempFolder, "temp-" + checkFile
-                            )
-                            cv2.imwrite(checkCutDetection, checkImg)
-                            if imgAreSimilar(
-                                cutDetection, checkCutDetection, maxSimilarity
-                            ):
-                                if not foundSimilar:
-                                    foundSimilar = True
-                                else:
-                                    continue
-                                os.remove(os.path.join(root, checkFile))
-                                deletedFiles.append(checkFile)
-                                os.remove(checkCutDetection)
-                                break
-                            os.remove(checkCutDetection)
-                os.remove(cutDetection)
+                cFileFutures.append(future)
+            concurrent.futures.wait(cFileFutures)
+
+        os.remove(cutDetection)
+
+    def processCheckFile(checkFile, cutDetection, args):
+        (
+            file,
+            root,
+            labels,
+            tempFolder,
+            imgWidth,
+            imgHeight,
+            maxSimilarity,
+            deletedFiles,
+            files,
+        ) = args
+        if (
+            checkFile.lower().endswith((".png", ".jpeg", ".jpg"))
+            and checkFile != file
+            and checkFile not in deletedFiles
+        ):
+            checkLabels = labels[".".join(file.split(".")[:-1])]
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                cFutures = []
+                for cl in checkLabels:
+                    future = executor.submit(
+                        processCheckLabel, cl, checkFile, cutDetection, args
+                    )
+                    cFutures.append(future)
+            concurrent.futures.wait(cFutures)
+
+    def processCheckLabel(cl, checkFile, cutDetection, args):
+        (
+            file,
+            root,
+            labels,
+            tempFolder,
+            imgWidth,
+            imgHeight,
+            maxSimilarity,
+            deletedFiles,
+            files,
+        ) = args
+        checkImgPoints = cl["bbox"]
+        checkImgPoints = ObjectDetection.convertLabelPoints(
+            checkImgPoints,
+            labelFormat,
+            "pascal_voc",
+            imgWidth,
+            imgHeight,
+        )
+        cxmin, cymin, cxmax, cymax = [int(p) for p in checkImgPoints]
+        checkImg = cv2.imread(os.path.join(root, checkFile))
+        checkImg = checkImg[cymin:cymax, cxmin:cxmax]
+        checkImg = cv2.resize(checkImg, (100, 100))
+        checkCutDetection = os.path.join(tempFolder, "temp-" + checkFile)
+        cv2.imwrite(checkCutDetection, checkImg)
+        if imgAreSimilar(cutDetection, checkCutDetection, maxSimilarity):
+            os.remove(os.path.join(root, checkFile))
+            deletedFiles.add(checkFile)
+            os.remove(checkCutDetection)
+            return
+        os.remove(checkCutDetection)
 
     imgHeight = 0
     imgWidth = 0
@@ -307,7 +355,7 @@ def deleteSimilarDetections(
     except FileExistsError:
         pass
     print("Checking similar detections")
-    deletedFiles = []
+    deletedFiles = set()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(
