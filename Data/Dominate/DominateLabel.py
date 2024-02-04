@@ -243,9 +243,7 @@ class ObjectDetection:
         dataPath,
         saveToPath,
         currentLabelFormat,
-        targetFormat,
-        imageWidth,
-        imageHeight,
+        targetFormat
     ):
         points, classes = ObjectDetection.loadAllLabels(
             labelsPath, dataPath, currentLabelFormat, True
@@ -253,7 +251,7 @@ class ObjectDetection:
         for key, value in points.copy().items():
             for i, v in enumerate(value.copy()):
                 value[i]["bbox"] = ObjectDetection.convertLabelPoints(
-                    v["bbox"], currentLabelFormat, targetFormat, imageWidth, imageHeight
+                    v["bbox"], currentLabelFormat, targetFormat, v["imageWidth"], v["imageHeight"]
                 )
                 value[i]["labelFormat"] = targetFormat
                 if targetFormat in ["yolo", "coco"]:
