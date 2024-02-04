@@ -1,4 +1,4 @@
-import os, shutil, os, gc, threading, time, sys, uuid, copy, cv2, warnings
+import os, shutil, os, gc, time, sys, uuid, copy, cv2, warnings
 import concurrent.futures
 
 warnings.warn("ignore")
@@ -205,16 +205,6 @@ def deleteSimilarDetections(
         int: The number of deleted similar detection files.
     """
 
-    def chunkList(lst, numChunks):
-        avgShunkSize = len(lst) // numChunks
-        remainder = len(lst) % numChunks
-        start = 0
-
-        for i in range(numChunks):
-            end = start + avgShunkSize + (1 if i < remainder else 0)
-            yield lst[start:end]
-            start = end
-
     def processFile(args):
         (
             file,
@@ -287,7 +277,7 @@ def deleteSimilarDetections(
                                 deletedFiles.append(checkFile)
                                 os.remove(checkCutDetection)
                                 break
-
+                            os.remove(checkCutDetection)
                 os.remove(cutDetection)
 
     imgHeight = 0
