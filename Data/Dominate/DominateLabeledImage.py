@@ -19,7 +19,6 @@ def splitDataToTxt(
     saveToPath: str,
     splitRatio: tuple = (0.8, 0.1),
     addToStart: str = "",
-    labelsFileTypes: tuple = (".json", ".txt"),
 ):
     """NOTE splitRatio = (train, test), val = 1 - (train+test)"""
     if not os.path.exists(dataPath):
@@ -43,7 +42,7 @@ def splitDataToTxt(
 
     for root, _, files in os.walk(labelsPath):
         for file in files:
-            if str(file).endswith(labelsFileTypes):
+            if str(file).endswith((".xml", ".json", ".txt")):
                 labels.append(str(addToStart) + file)
 
     trainImages = images[: int(len(images) * splitRatio[0])]
@@ -89,7 +88,6 @@ def splitDataToFolders(
     labelsPath: str,
     saveToPath: str,
     splitRatio: tuple = (0.8, 0.1),
-    labelsFileTypes: tuple = (".json", ".txt"),
 ):
     """NOTE splitRatio = (train, test), val = 1 - (train+test)"""
     if not os.path.exists(dataPath):
@@ -128,7 +126,7 @@ def splitDataToFolders(
     labels = {}
     for root, _, files in os.walk(labelsPath):
         for file in files:
-            if file.endswith(labelsFileTypes):
+            if file.endswith((".xml", ".json", ".txt")):
                 labels[".".join(file.split(".")[:-1])] = os.path.join(root, file)
     totalFiles = len(datas)
     numTrain = int(totalFiles * splitRatio[0])
@@ -165,7 +163,7 @@ def deleteAloneData(dataPath: str, labelsPath: str = None):  # type: ignore
     for root, _, files in os.walk(labelsPath):
         for file in files:
             fileCount = str(file)
-            if fileCount.lower().endswith(("json", "txt", "xml")):
+            if fileCount.lower().endswith((".json", ".txt", ".xml")):
                 labelFiles[0].append(os.path.join(root, file))
                 labelFiles[1].append(".".join(file.split(".")[:-1]))
 
@@ -173,7 +171,7 @@ def deleteAloneData(dataPath: str, labelsPath: str = None):  # type: ignore
     for root, _, files in os.walk(dataPath):
         for file in files:
             fileCount = str(file)
-            if fileCount.lower().endswith(("jpg", "png", "jpeg")):
+            if fileCount.lower().endswith((".jpg", ".png", ".jpeg")):
                 imageFiles[0].append(os.path.join(root, file))
                 imageFiles[1].append(".".join(file.split(".")[:-1]))
 
@@ -397,7 +395,7 @@ def countClasses(dataPath: str, labelFormat, labelsPath: str = None):
     for root, _, files in os.walk(labelsPath):
         for file in files:
             fileCount = str(file)
-            if fileCount.lower().endswith(("json", "txt", "xml")):
+            if fileCount.lower().endswith((".json", ".txt", ".xml")):
                 labels[file] = {}
                 labels[file]["root"] = root
                 labels[file]["file"] = file
@@ -407,7 +405,7 @@ def countClasses(dataPath: str, labelFormat, labelsPath: str = None):
     for root, _, files in os.walk(dataPath):
         for file in files:
             fileCount = str(file)
-            if fileCount.lower().endswith(("jpg", "png", "jpeg")):
+            if fileCount.lower().endswith((".jpg", ".png", ".jpeg")):
                 if imageWidth == 0:
                     img = Image.open(os.path.join(root, file))
                     imageWidth = img.width
