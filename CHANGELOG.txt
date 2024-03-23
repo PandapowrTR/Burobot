@@ -43,3 +43,7 @@ Improved performance of deleteSimilarDetections function using threading. Warnin
 ## 0.0.9 Beta 04.02.2024
 - fixed dict error on splitDataToFolders
 - convertAllLabelFiles no longer asks for image width and height
+
+## 0.1.0 Beta 23.03.2024
+- Models are now saved with the .keras extension.
+- Removed use_multiprocessing.
