@@ -53,7 +53,6 @@ class ModelSchemes:
                 self.staticValues = {
                     "classCount": classCount,
                     "imageShape": imageShape,
-                    "useMultiprocessing": True,
                     "libraryImportCodes": ["import tensorflow as tf"],
                 }
 
@@ -221,7 +220,7 @@ class ModelSchemes:
                 checkpoint = tf.keras.callbacks.ModelCheckpoint(
                     os.path.join(
                         saveToPath,
-                        modelName + "-Checkpoint.h5",
+                        modelName + "-Checkpoint.keras",
                     ),
                     monitor="val_loss",
                     mode="min",
@@ -238,9 +237,7 @@ class ModelSchemes:
                     validation_data=valData,
                     batch_size=param["batchSizes"],
                     callbacks=[early_stoping, reduce, checkpoint],
-                    verbose=1,
-                    use_multiprocessing=staticValues["useMultiprocessing"],
-                    workers=workers,
+                    verbose=1
                 )
 
                 gc.collect()
@@ -250,7 +247,7 @@ class ModelSchemes:
                     history,
                     os.path.join(
                         saveToPath,
-                        modelName + "-Checkpoint.h5",
+                        modelName + "-Checkpoint.keras",
                     ),
                 )
 
@@ -259,7 +256,7 @@ class ModelSchemes:
                 """
                 :_values (dict): There are no mandatory variables in this variable. However, this variable must be in the method. The following values will be automatically populated during Grid Search: model, saveToPath
                 """
-                _values["model"].save(_values["saveToPath"] + ".h5")
+                _values["model"].save(_values["saveToPath"] + ".keras")
 
             @staticmethod
             def loadModel(_values: dict):
