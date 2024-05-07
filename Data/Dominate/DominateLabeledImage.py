@@ -788,6 +788,8 @@ class Augmentation:
                     imgSavePath, labelSavePath, labelSaveFormat, maxSimilarity
                 )
             except KeyboardInterrupt:
+                if os.path.exists(os.path.join(imgSavePath, "tempFiles")):
+                    shutil.rmtree(os.path.join(imgSavePath, "tempFiles"), ignore_errors=True)
                 print("🔄 Deleting alone data 🥺💔")
                 time.sleep(1)
                 deleteAloneData(imgSavePath, labelSavePath)
