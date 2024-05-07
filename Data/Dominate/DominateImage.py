@@ -150,8 +150,16 @@ def deleteDuplicateImages(path):
 
 
 def imgAreSimilar(img1, img2, similarity: float = 0.9, returnSimilarity: bool = False):
-    img1 = Image.open(img1)
-    img2 = Image.open(img2)
+    if isinstance(img1, np.ndarray):
+        img1 = Image.fromarray(img1)
+    else:
+        img1 = Image.open(img1)
+
+    if isinstance(img2, np.ndarray):
+        img2 = Image.fromarray(img2)
+    else:
+        img2 = Image.open(img2)
+        
     hash1 = imagehash.average_hash(img1)
     hash2 = imagehash.average_hash(img2)
 
@@ -215,7 +223,9 @@ def deleteSimilarImgs(path, similarity: float = 0.9):
     maxThread = 10
     with ThreadPoolExecutor(maxThread) as executor:
         for folder in os.listdir(path):
-            future = executor.submit(deleteSimilarImagesInFolder, folder, updateProgress)
+            future = executor.submit(
+                deleteSimilarImagesInFolder, folder, updateProgress
+            )
             threads.append(future)
 
     for t in threads:
