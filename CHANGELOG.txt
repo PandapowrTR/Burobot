@@ -55,3 +55,4 @@ Improved performance of deleteSimilarDetections function using threading. Warnin
   - The deleteSimilarDetections function should now work on image datasets of different sizes.
   - Fixed the error of checking the same tag in detection similarity check.
   - opencv 'check file path/integrity' warning is now not printing anymore.
+  - Now, if the deleteSimilarDetections method is interrupted, it should delete the alone datas.
