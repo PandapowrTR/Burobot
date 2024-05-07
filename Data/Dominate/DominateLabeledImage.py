@@ -787,6 +787,11 @@ class Augmentation:
                 deleteSimilarDetections(
                     imgSavePath, labelSavePath, labelSaveFormat, maxSimilarity
                 )
+            except KeyboardInterrupt:
+                print("🔄 Deleting alone data 🥺💔")
+                time.sleep(1)
+                deleteAloneData(imgSavePath, labelSavePath)
+                BurobotOutput.clearAndMemoryTo()
             except:
                 pass
 
