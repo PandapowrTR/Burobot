@@ -1,5 +1,6 @@
 import os, shutil, os, gc, time, sys, uuid, copy, cv2, warnings
 import concurrent.futures
+cv2.setLogLevel(0)
 
 warnings.warn("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -209,8 +210,6 @@ def deleteSimilarDetections(
             root,
             labels,
             tempFolder,
-            imgWidth,
-            imgHeight,
             maxSimilarity,
             deletedFiles,
             files,
@@ -221,14 +220,21 @@ def deleteSimilarDetections(
             and file not in deletedFiles
         ):
             label = labels[".".join(file.split(".")[:-1])]
-
+            
+            if not os.path.exists(os.path.join(root, file)):
+                return
             img = cv2.imread(os.path.join(root, file))
             if img is None:
                 return
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 futures = []
                 for l in label:
-                    future = executor.submit(processLabel, l, img, args)
+                    future = executor.submit(
+                        processLabel,
+                        l,
+                        img,
+                        args,
+                    )
                     futures.append(future)
 
                 concurrent.futures.wait(futures)
@@ -239,15 +245,13 @@ def deleteSimilarDetections(
             root,
             labels,
             tempFolder,
-            imgWidth,
-            imgHeight,
             maxSimilarity,
             deletedFiles,
             files,
         ) = args
         points = l["bbox"]
         points = ObjectDetection.convertLabelPoints(
-            points, labelFormat, "pascal_voc", imgWidth, imgHeight
+            points, labelFormat, "pascal_voc", l["imageWidth"], l["imageHeight"]
         )
         xmin, ymin, xmax, ymax = [int(p) for p in points]
         img = img[ymin:ymax, xmin:xmax]
@@ -272,8 +276,6 @@ def deleteSimilarDetections(
             root,
             labels,
             tempFolder,
-            imgWidth,
-            imgHeight,
             maxSimilarity,
             deletedFiles,
             files,
@@ -283,7 +285,7 @@ def deleteSimilarDetections(
             and checkFile != file
             and checkFile not in deletedFiles
         ):
-            checkLabels = labels[".".join(file.split(".")[:-1])]
+            checkLabels = labels[".".join(checkFile.split(".")[:-1])]
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 cFutures = []
                 for cl in checkLabels:
@@ -299,8 +301,6 @@ def deleteSimilarDetections(
             root,
             labels,
             tempFolder,
-            imgWidth,
-            imgHeight,
             maxSimilarity,
             deletedFiles,
             files,
@@ -310,10 +310,12 @@ def deleteSimilarDetections(
             checkImgPoints,
             labelFormat,
             "pascal_voc",
-            imgWidth,
-            imgHeight,
+            cl["imageWidth"],
+            cl["imageHeight"],
         )
         cxmin, cymin, cxmax, cymax = [int(p) for p in checkImgPoints]
+        if not os.path.exists(os.path.join(root, checkFile)):
+            return
         checkImg = cv2.imread(os.path.join(root, checkFile))
         checkImg = checkImg[cymin:cymax, cxmin:cxmax]
         checkImg = cv2.resize(checkImg, (100, 100))
@@ -326,24 +328,27 @@ def deleteSimilarDetections(
             return
         os.remove(checkCutDetection)
 
-    imgHeight = 0
-    imgWidth = 0
+    sizes = {}
     for root, _, files in os.walk(dataPath):
         for file in files:
             if file.lower().endswith((".jpg", ".png", ".jpeg")):
                 img = Image.open(os.path.join(root, file))
-                imgHeight = img.height
-                imgWidth = img.width
-                break
-        break
+                sizes[".".join(file.split(".")[:-1])] = {
+                    "imageHeight": img.height,
+                    "imageWidth": img.width,
+                }
     labels = {}
     for root, _, files in os.walk(labelsPath):
         for file in files:
             if file.lower().endswith((".json", ".xml", ".txt")):
+                rawFileName = ".".join(file.split(".")[:-1])
                 labels.update(
                     {
-                        ".".join(file.split(".")[:-1]): ObjectDetection.loadLabel(
-                            os.path.join(root, file), labelFormat, imgWidth, imgHeight
+                        rawFileName: ObjectDetection.loadLabel(
+                            os.path.join(root, file),
+                            labelFormat,
+                            sizes[rawFileName]["imageWidth"],
+                            sizes[rawFileName]["imageHeight"],
                         )
                     }
                 )
@@ -364,8 +369,6 @@ def deleteSimilarDetections(
                     root,
                     labels,
                     tempFolder,
-                    imgWidth,
-                    imgHeight,
                     maxSimilarity,
                     deletedFiles,
                     files.copy(),
@@ -778,7 +781,9 @@ class Augmentation:
             try:
                 BurobotOutput.clearAndMemoryTo()
                 BurobotOutput.printBurobot()
-                print(f"🔄 Deleting {maxSimilarity*100}% similar or more detections 🔍🧐")
+                print(
+                    f"🔄 Deleting {maxSimilarity*100}% similar or more detections 🔍🧐"
+                )
                 deleteSimilarDetections(
                     imgSavePath, labelSavePath, labelSaveFormat, maxSimilarity
                 )
