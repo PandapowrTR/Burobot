@@ -61,5 +61,6 @@ Improved performance of deleteSimilarDetections function using threading. Warnin
 - DominateLabeledImage:
   - Images are now stored in memory instead of operations such as reading, writing and deleting files. However, the speed of the method needs to be increased.
   - Multithreading structure has been edited.
+  - Fix Checking similar detections percent.
 - DominateImage:
   - imgAreSimilar method now accepts numpy arrays
