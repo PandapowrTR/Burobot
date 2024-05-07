@@ -778,7 +778,7 @@ class Augmentation:
             try:
                 BurobotOutput.clearAndMemoryTo()
                 BurobotOutput.printBurobot()
-                print(f"🔄 Deleting {maxSimilarity*100}% similar or more images 🔍🧐")
+                print(f"🔄 Deleting {maxSimilarity*100}% similar or more detections 🔍🧐")
                 deleteSimilarDetections(
                     imgSavePath, labelSavePath, labelSaveFormat, maxSimilarity
                 )
