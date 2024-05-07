@@ -56,3 +56,10 @@ Improved performance of deleteSimilarDetections function using threading. Warnin
   - Fixed the error of checking the same tag in detection similarity check.
   - opencv 'check file path/integrity' warning is now not printing anymore.
   - Now, if the deleteSimilarDetections method is interrupted, it should delete the alone datas.
+
+## 0.1.2 Beta 07.05.2024
+- DominateLabeledImage:
+  - Images are now stored in memory instead of operations such as reading, writing and deleting files. However, the speed of the method needs to be increased.
+  - Multithreading structure has been edited.
+- DominateImage:
+  - imgAreSimilar method now accepts numpy arrays
