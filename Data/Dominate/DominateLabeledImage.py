@@ -239,6 +239,8 @@ def deleteSimilarDetections(
                     futures.append(future)
 
                 concurrent.futures.wait(futures)
+        nonlocal c
+        c +=  1
 
     def processLabel(l, img, args):
         (
@@ -304,8 +306,6 @@ def deleteSimilarDetections(
         checkCutDetection = np.array(Image.fromarray(checkCutDetection).resize((100, 100)))
         if imgAreSimilar(cutDetection, checkCutDetection, maxSimilarity):
             deletedFiles.add(checkFile)
-        nonlocal c
-        c +=  1
 
     sizes = {}
     for root, _, files in os.walk(dataPath):
