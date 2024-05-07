@@ -48,3 +48,10 @@ Improved performance of deleteSimilarDetections function using threading. Warnin
 - ImageClassification Scheme updated:
   - Models are now saved with the .keras extension.
   - Removed use_multiprocessing.
+
+## 0.1.1 Beta 07.05.2024
+- DominateLabeledImage updated:
+  Support for unequal image sizes, same detection check error.
+  - The deleteSimilarDetections function should now work on image datasets of different sizes.
+  - Fixed the error of checking the same tag in detection similarity check.
+  - opencv 'check file path/integrity' warning is now not printing anymore.
