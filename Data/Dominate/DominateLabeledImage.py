@@ -206,7 +206,7 @@ def deleteSimilarDetections(
     all_ = len(os.listdir(dataPath))
     c = 0
 
-    def precessOutput():
+    def processOutput():
         nonlocal c
         print(f"Checking similar detections {(c/all_)*100:.2f}% \r", end="")
         c += 1
@@ -245,6 +245,7 @@ def deleteSimilarDetections(
                     futures.append(future)
 
                 concurrent.futures.wait(futures)
+        processOutput();
 
     def processLabel(l, img, args):
         (
